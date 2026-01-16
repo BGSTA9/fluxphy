@@ -1,7 +1,7 @@
 <!-- Logo -->
 <p align="center">
   <a href="https://github.com/BGSTA9/fluxphy">
-    <img src="./logo/FLUXPHY_LOGO.png" alt="FluxPhy Logo" width="280"/>
+    <img src="./logo/FLUXPHY_LOGO_TRANSPARENT.png" alt="FluxPhy Logo" width="360"/>
   </a>
 </p>
 
