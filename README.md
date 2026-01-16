@@ -1,20 +1,28 @@
+<!-- Logo -->
 <p align="center">
-  <img src="./logo/FLUXPHY_LOGO.png" alt="FluxPhy Logo" width="200"/>
+  <a href="https://github.com/BGSTA9/fluxphy">
+    <img src="./logo/FLUXPHY_LOGO.png" alt="FluxPhy Logo" width="280"/>
+  </a>
 </p>
 
+<!-- Title -->
 <h1 align="center">FluxPhy</h1>
 
+<!-- Tagline -->
 <p align="center">
   <strong>🔬 Physics of Flux File Transfer Tool</strong>
 </p>
 
+<!-- Badges -->
 <p align="center">
+  <a href="https://crates.io/crates/fluxphy"><img src="https://img.shields.io/badge/crates.io-fluxphy-orange?logo=rust" alt="Crates.io"></a>
   <a href="#installation"><img src="https://img.shields.io/badge/cargo-install-blue?logo=rust" alt="Cargo Install"></a>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey" alt="Platform">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <img src="https://img.shields.io/badge/rust-1.75+-orange?logo=rust" alt="Rust Version">
 </p>
 
+<!-- Description -->
 <p align="center">
   <em>A cross-platform TUI/CLI file transfer tool with deep instrumentation<br/>into the "physics" of data flux</em>
 </p>
