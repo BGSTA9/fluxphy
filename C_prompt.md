@@ -1,6 +1,6 @@
 # FluxPhy - Physics of Flux File Transfer Tool
 
-I want you to build a cross-platform TUI/CLI file copy tool called "fluxphy" in Rust that works on Linux, Mac, and Windows. This tool treats file transfer as a physical process and provides deep instrumentation into the "physics" of data flux.
+I want you to build a cross-platform TUI/CLI file copy tool called "fluxphy" in Rust that works on Linux, Mac, and Windows. This tool performs the file transfer and treats the file transfer as a physical process and provides deep instrumentation into the "physics" of data flux, a "mechanistic interpretability" of the file transfer process.
 
 ## CORE REQUIREMENTS:
 
@@ -38,7 +38,7 @@ I want you to build a cross-platform TUI/CLI file copy tool called "fluxphy" in 
 
 ## TECHNICAL SPECIFICATIONS:
 
-**Language**: Rust (stable channel, edition 2021)
+**Language**: Rust (stable channel, edition 2021, MSRV 1.75)
 
 **Key Crates**:
 - `clap` (v4+) - CLI argument parsing with derive macros
@@ -212,8 +212,9 @@ fluxphy source.txt /dest/ --physics-verbose
 [package]
 name = "fluxphy"
 version = "0.1.0"
-edition = "2026"
-description = "A file copy tool with deep instrumentation into the physics of data flux"
+edition = "2021"
+rust-version = "1.75"
+description = "A file transfer tool with deep instrumentation into the physics of data flux"
 authors = ["Argo Navis Research Laboratory"]
 license = "MIT"
 repository = "https://github.com/BGSTA9/fluxphy"
@@ -222,22 +223,32 @@ keywords = ["file-transfer", "tui", "monitoring", "performance"]
 categories = ["command-line-utilities", "filesystem"]
 
 [dependencies]
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 indicatif = "0.17"
-ratatui = "0.25"
-crossterm = "0.27"
+ratatui = "0.29"
+crossterm = "0.28"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 walkdir = "2"
 fs_extra = "1.3"
-sysinfo = "0.30"
+sysinfo = "0.33"
 chrono = "0.4"
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
+sha2 = "0.10"
+dirs = "5.0"
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = "0.3"
 
 [dev-dependencies]
 tempfile = "3"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "copy_benchmark"
+harness = false
 
 [profile.release]
 opt-level = 3
@@ -272,7 +283,7 @@ uninstall:
 
 ### 2. Dockerfile:
 ```dockerfile
-FROM rust:1.75 as builder
+FROM rust:latest as builder
 WORKDIR /usr/src/fluxphy
 COPY . .
 RUN cargo build --release
@@ -310,7 +321,7 @@ end
 pkgname=fluxphy
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="A file copy tool with deep instrumentation into the physics of data flux"
+pkgdesc="A file transfer tool with deep instrumentation into the physics of data flux"
 arch=('x86_64')
 url="https://github.com/BGSTA9/fluxphy"
 license=('MIT')
@@ -335,9 +346,9 @@ package() {
 ```yaml
 name: fluxphy
 version: '0.1.0'
-summary: File copy tool with physics-based monitoring
+summary: File transfer tool with physics-based monitoring
 description: |
-  A file copy tool with deep instrumentation into the physics of data flux.
+  A file transfer tool with deep instrumentation into the physics of data flux.
   Features real-time TUI with live graphing and comprehensive metrics.
 
 base: core22
@@ -363,7 +374,7 @@ parts:
 Name:           fluxphy
 Version:        0.1.0
 Release:        1%{?dist}
-Summary:        File copy tool with physics-based monitoring
+Summary:        File transfer tool with physics-based monitoring
 
 License:        MIT
 URL:            https://github.com/BGSTA9/fluxphy
@@ -373,7 +384,7 @@ BuildRequires:  rust
 BuildRequires:  cargo
 
 %description
-A file copy tool with deep instrumentation into the physics of data flux.
+A file transfer tool with deep instrumentation into the physics of data flux.
 
 %prep
 %autosetup
@@ -390,7 +401,7 @@ install -Dm755 target/release/fluxphy %{buildroot}%{_bindir}/fluxphy
 %doc README.md
 
 %changelog
-* Thu Jan 16 2026 Your Name <your.email@example.com> - 0.1.0-1
+* Thu Jan 16 2026 SOHEIL SANATI MOUTABAN <soheilsanatii@gmail.com> - 0.1.0-1
 - Initial package
 ```
 
@@ -399,7 +410,7 @@ install -Dm755 target/release/fluxphy %{buildroot}%{_bindir}/fluxphy
 Source: fluxphy
 Section: utils
 Priority: optional
-Maintainer: Your Name <your.email@example.com>
+Maintainer: SOHEIL SANATI MOUTABAN <soheilsanatii@gmail.com>
 Build-Depends: debhelper-compat (= 13), cargo, rustc
 Standards-Version: 4.6.0
 Homepage: https://github.com/BGSTA9/fluxphy
@@ -407,7 +418,7 @@ Homepage: https://github.com/BGSTA9/fluxphy
 Package: fluxphy
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: File copy tool with physics-based monitoring
+Description: File transfer tool with physics-based monitoring
  A file copy tool with deep instrumentation into the physics of data flux.
  Features real-time TUI with live graphing and comprehensive metrics.
 ```
@@ -420,7 +431,7 @@ PackageLocale: en-US
 Publisher: FluxPhy Team
 PackageName: FluxPhy
 License: MIT
-ShortDescription: File copy tool with physics-based monitoring
+ShortDescription: File transfer tool with physics-based monitoring
 Installers:
   - Architecture: x64
     InstallerType: portable
@@ -467,16 +478,18 @@ jobs:
             target: aarch64-apple-darwin
             artifact_name: fluxphy
             asset_name: fluxphy-macos-aarch64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: fluxphy
+            asset_name: fluxphy-linux-aarch64
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
       
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
@@ -494,10 +507,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
 
   publish-docker:
@@ -505,7 +516,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build and push Docker image
         run: |
           docker build -t ghcr.io/${{ github.repository }}:latest .
@@ -517,7 +528,7 @@ jobs:
 
 ### Phase 1 - Basic Copy with Progress Bar:
 - CLI argument parsing with clap
-- Single file copy with indicatif progress bar
+- Single file transfer with indicatif progress bar
 - Real-time speed calculation
 - ETA calculation
 - Cross-platform path handling (std::path::PathBuf)
@@ -525,7 +536,7 @@ jobs:
 
 ### Phase 2 - TUI with Real-Time Plotting:
 - Switch from simple progress bar to ratatui full TUI
-- Create split layout: 50% info panel, 50% line graph
+- Create horizontal split layout: 50% line graph, 50% info panel
 - Real-time line graph showing R(t) over time
 - Update graph every 100ms with new data points
 - Display current metrics in info panel
@@ -747,6 +758,21 @@ pub enum FluxError {
     
     #[error("Destination is a directory, use --recursive")]
     DestinationIsDirectory,
+    
+    #[error("Transfer cancelled by user")]
+    TransferCancelled,
+    
+    #[error("Checksum mismatch: expected {expected}, got {actual}")]
+    ChecksumMismatch { expected: String, actual: String },
+    
+    #[error("Configuration error: {0}")]
+    ConfigError(String),
+    
+    #[error("Invalid path: {0}")]
+    InvalidPath(String),
+    
+    #[error("Config file not found")]
+    ConfigNotFound,
 }
 
 pub type FluxResult<T> = Result<T, FluxError>;
@@ -794,6 +820,7 @@ impl FluxCopier {
 
         let mut buffer = vec![0u8; self.buffer_size];
         let mut total_copied = 0u64;
+        let mut last_copied = 0u64;
         let start_time = Instant::now();
         let mut last_sample = start_time;
 
@@ -809,12 +836,16 @@ impl FluxCopier {
             let now = Instant::now();
             if now.duration_since(last_sample) >= self.sample_interval {
                 let elapsed = now.duration_since(start_time).as_secs_f64();
-                let rate = total_copied as f64 / elapsed / (1024.0 * 1024.0); // MB/s
+                let interval_secs = now.duration_since(last_sample).as_secs_f64();
+                let bytes_this_interval = total_copied - last_copied;
+                // Instantaneous rate for this sampling interval
+                let rate = bytes_this_interval as f64 / interval_secs / (1024.0 * 1024.0); // MB/s
                 
                 self.rate_samples.push((elapsed, rate));
                 progress_callback(total_copied, rate);
                 
                 last_sample = now;
+                last_copied = total_copied;
             }
         }
 
@@ -945,17 +976,14 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "fluxphy")]
-#[command(author = "FluxPhy Team")]
+#[command(author = "Argo Navis Research Laboratory")]
 #[command(version = "0.1.0")]
-#[command(about = "A file copy tool with deep instrumentation into the physics of data flux", long_about = None)]
+#[command(about = "A file transfer tool with deep instrumentation into the physics of data flux", long_about = None)]
+#[command(trailing_var_arg = true)]
 pub struct Cli {
-    /// Source file(s) or directory to copy
-    #[arg(required = true)]
-    pub sources: Vec<PathBuf>,
-
-    /// Destination path
-    #[arg(required = true)]
-    pub destination: PathBuf,
+    /// Source file(s) and destination path (last argument is destination)
+    #[arg(required = true, num_args = 2..)]
+    pub paths: Vec<PathBuf>,
 
     /// Copy directories recursively
     #[arg(short, long)]
@@ -1008,11 +1036,23 @@ pub enum ColorMode {
     Always,
     Never,
 }
+
+impl Cli {
+    /// Get source paths (all paths except the last one)
+    pub fn sources(&self) -> &[PathBuf] {
+        &self.paths[..self.paths.len() - 1]
+    }
+    
+    /// Get destination path (the last path)
+    pub fn destination(&self) -> &PathBuf {
+        self.paths.last().expect("At least 2 paths required")
+    }
+}
 ```
 
 ## COMPLETE EXAMPLE USAGE SCENARIOS:
 
-### 1. Basic Single File Copy:
+### 1. Basic Single File Transfer:
 ```bash
 $ fluxphy video.mp4 /backup/
 
@@ -1030,7 +1070,7 @@ Thermal Stability: 0.94
 Metrics saved to: fluxphy_metrics_20260116_143052.json
 ```
 
-### 2. Directory Copy with Analysis:
+### 2. Directory Transfer with Analysis:
 ```bash
 $ fluxphy /data/photos/ /backup/photos/ --recursive --analyze
 
@@ -1422,7 +1462,7 @@ criterion_main!(benches);
 </p>
 
 <p align="center">
-  <strong>A file copy tool with deep instrumentation into the physics of data flux</strong>
+  <strong>A file transfer tool with deep instrumentation into the physics of data flux</strong>
 </p>
 
 <p align="center">
