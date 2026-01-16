@@ -1,0 +1,41 @@
+{
+  "transfer_id": "20260116_044103_10fbff",
+  "timestamp": "2026-01-16T01:41:03.729385Z",
+  "source": "/tmp/fluxphy_test_source.txt",
+  "destination": "/tmp/fluxphy_verify_test.txt",
+  "file_size_bytes": 25,
+  "total_time_seconds": 0.000889291,
+  "file_count": 1,
+  "statistics": {
+    "mean_rate": 0.0,
+    "variance": 0.0,
+    "std_dev": 0.0,
+    "coefficient_of_variation": 0.0,
+    "min_rate": 0.0,
+    "max_rate": 0.0,
+    "peak_rate": 0.0,
+    "sample_count": 0
+  },
+  "physics_metrics": {
+    "flux_density": 0.0,
+    "thermal_stability": 1.0,
+    "system_temperature": 0.0,
+    "shannon_entropy": 0.0,
+    "flow_regime": "Laminar"
+  },
+  "system_constraints": {
+    "primary_bottleneck": "Unknown",
+    "cpu_usage": 13.785452,
+    "disk_io_wait": 0.0,
+    "memory_pressure": 64.6205,
+    "efficiency": 0.0
+  },
+  "prediction": {
+    "initial_rate_estimate": 0.0,
+    "predicted_time": 0.0,
+    "actual_time": 0.000889291,
+    "error_percentage": -100.0,
+    "accuracy_class": "Poor"
+  },
+  "rate_history": []
+}

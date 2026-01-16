@@ -1,0 +1,14 @@
+Source: fluxphy
+Section: utils
+Priority: optional
+Maintainer: SOHEIL SANATI MOUTABAN <soheilsanatii@gmail.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc
+Standards-Version: 4.6.0
+Homepage: https://github.com/BGSTA9/fluxphy
+
+Package: fluxphy
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: File transfer tool with physics-based monitoring
+ A file copy tool with deep instrumentation into the physics of data flux.
+ Features real-time TUI with live graphing and comprehensive metrics.

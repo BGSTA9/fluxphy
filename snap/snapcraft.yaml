@@ -1,0 +1,23 @@
+name: fluxphy
+version: '0.1.0'
+summary: File transfer tool with physics-based monitoring
+description: |
+  A file transfer tool with deep instrumentation into the physics of data flux.
+  Features real-time TUI with live graphing and comprehensive metrics.
+
+base: core22
+confinement: strict
+grade: stable
+
+apps:
+  fluxphy:
+    command: bin/fluxphy
+    plugs:
+      - home
+      - removable-media
+
+parts:
+  fluxphy:
+    plugin: rust
+    source: .
+    rust-channel: stable
