@@ -292,7 +292,7 @@ async fn main() -> FluxResult<()> {
 
     // Handle fetch command
     if cli.fetch {
-        welcome::display_welcome();
+        welcome::display_fetch();
         return Ok(());
     }
 

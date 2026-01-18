@@ -432,7 +432,7 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
 fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
     let info = vec![
         Line::from(vec![
-            Span::styled("⚛️ Physics", Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
+            Span::styled("⚛️ Physics", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
