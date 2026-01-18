@@ -8,14 +8,12 @@ class Fluxphy < Formula
     if Hardware::CPU.arm?
       url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-macos-aarch64"
       sha256 "PLACEHOLDER_SHA256_ARM64"
-
       def install
         bin.install "fluxphy-macos-aarch64" => "fluxphy"
       end
     else
       url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-macos-x86_64"
       sha256 "PLACEHOLDER_SHA256_X86_64"
-
       def install
         bin.install "fluxphy-macos-x86_64" => "fluxphy"
       end
@@ -25,7 +23,6 @@ class Fluxphy < Formula
   on_linux do
     url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-linux-x86_64"
     sha256 "PLACEHOLDER_SHA256_LINUX"
-
     def install
       bin.install "fluxphy-linux-x86_64" => "fluxphy"
     end

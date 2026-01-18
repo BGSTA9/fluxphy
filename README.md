@@ -76,7 +76,21 @@ cargo install fluxphy
 
 ### Homebrew (macOS/Linux)
 ```bash
-brew install fluxphy  # Coming soon
+brew tap BGSTA9/tap
+brew install fluxphy
+```
+
+### pip / uv
+```bash
+pip install fluxphy
+# or
+uv pip install fluxphy
+```
+
+### Docker
+```bash
+docker pull ghcr.io/bgsta9/fluxphy:latest
+docker run --rm -v $(pwd):/data ghcr.io/bgsta9/fluxphy /data/source.txt /data/dest/
 ```
 
 ### From Source

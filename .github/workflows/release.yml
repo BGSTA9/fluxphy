@@ -81,3 +81,131 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker push ghcr.io/${{ github.repository }}:latest
           docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install maturin
+        run: pip install maturin
+      - name: Build wheels
+        run: maturin build --release --target ${{ matrix.target }} --out dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist
+
+  upload-pypi:
+    name: Upload all wheels to PyPI
+    runs-on: ubuntu-latest
+    needs: publish-pypi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Tap
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: BGSTA9/homebrew-tap
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          path: homebrew-tap
+      
+      - name: Download release assets and compute SHA256
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          
+          # Download binaries and compute SHA256
+          curl -sL "https://github.com/BGSTA9/fluxphy/releases/download/${{ github.ref_name }}/fluxphy-macos-aarch64" -o fluxphy-macos-aarch64
+          curl -sL "https://github.com/BGSTA9/fluxphy/releases/download/${{ github.ref_name }}/fluxphy-macos-x86_64" -o fluxphy-macos-x86_64
+          curl -sL "https://github.com/BGSTA9/fluxphy/releases/download/${{ github.ref_name }}/fluxphy-linux-x86_64" -o fluxphy-linux-x86_64
+          
+          SHA_ARM64=$(shasum -a 256 fluxphy-macos-aarch64 | cut -d ' ' -f1)
+          SHA_X86_64=$(shasum -a 256 fluxphy-macos-x86_64 | cut -d ' ' -f1)
+          SHA_LINUX=$(shasum -a 256 fluxphy-linux-x86_64 | cut -d ' ' -f1)
+          
+          echo "SHA_ARM64=$SHA_ARM64" >> $GITHUB_ENV
+          echo "SHA_X86_64=$SHA_X86_64" >> $GITHUB_ENV
+          echo "SHA_LINUX=$SHA_LINUX" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      
+      - name: Update formula
+        run: |
+          cat > homebrew-tap/Formula/fluxphy.rb << 'EOF'
+          class Fluxphy < Formula
+            desc "File transfer tool with deep instrumentation into the physics of data flux"
+            homepage "https://github.com/BGSTA9/fluxphy"
+            version "${{ env.VERSION }}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-macos-aarch64"
+                sha256 "${{ env.SHA_ARM64 }}"
+                def install
+                  bin.install "fluxphy-macos-aarch64" => "fluxphy"
+                end
+              else
+                url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-macos-x86_64"
+                sha256 "${{ env.SHA_X86_64 }}"
+                def install
+                  bin.install "fluxphy-macos-x86_64" => "fluxphy"
+                end
+              end
+            end
+
+            on_linux do
+              url "https://github.com/BGSTA9/fluxphy/releases/download/v#{version}/fluxphy-linux-x86_64"
+              sha256 "${{ env.SHA_LINUX }}"
+              def install
+                bin.install "fluxphy-linux-x86_64" => "fluxphy"
+              end
+            end
+
+            test do
+              assert_match "fluxphy #{version}", shell_output("#{bin}/fluxphy --version")
+            end
+          end
+          EOF
+      
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/fluxphy.rb
+          git commit -m "Update fluxphy to ${{ github.ref_name }}"
+          git push
+
