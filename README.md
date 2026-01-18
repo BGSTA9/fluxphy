@@ -16,7 +16,7 @@
 <!-- Badges -->
 <p align="center">
   <a href="https://crates.io/crates/fluxphy"><img src="https://img.shields.io/badge/crates.io-fluxphy-orange?logo=rust" alt="Crates.io"></a>
-  <a href="#installation"><img src="https://img.shields.io/badge/cargo-install-blue?logo=rust" alt="Cargo Install"></a>
+  <a href="https://pypi.org/project/fluxphy/"><img src="https://img.shields.io/badge/pypi-fluxphy-blue?logo=python" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey" alt="Platform">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <img src="https://img.shields.io/badge/rust-1.75+-orange?logo=rust" alt="Rust Version">
@@ -24,73 +24,82 @@
 
 <!-- Description -->
 <p align="center">
-  <em>A cross-platform TUI/CLI file transfer tool with deep instrumentation<br/>into the "physics" of data flux</em>
+  <em>A cross-platform TUI/CLI file transfer tool with deep instrumentation<br/>into the "physics" of data flux.</em>
+</p>
+
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-usage">Usage</a> •
+  <a href="#-physics-metrics">Metrics</a> •
+  <a href="#-data-provenance">Provenance</a>
 </p>
 
 ---
 
 ## ✨ Features
 
+FluxPhy goes beyond simple file copying by treating data transfer as a physical fluid dynamic process.
+
 | Feature | Description |
 |---------|-------------|
 | 🚀 **High-Performance** | Optimized 8MB buffered I/O with async operations |
-| 📊 **Real-Time TUI** | Live visualization with rate graph (50% of screen) |
-| 🔬 **Physics Metrics** | Flow regime, thermal stability, entropy analysis |
-| 📈 **Analytics** | Statistical analysis and bottleneck detection |
-| 🎯 **Cross-Platform** | Works on Linux, macOS, and Windows |
-| 💾 **JSON Export** | Detailed metrics saved after every transfer |
-| 🔍 **Verification** | Optional SHA-256 checksum verification |
+| 📊 **Real-Time TUI** | Live visualization with rate graph and "neolfetch" style summary |
+| 📦 **Data Provenance** | Generates **W3C PROV-O JSON-LD** records for scientific reproducibility |
+| 📉 **Advanced Modelling**| Real-time **Trend Analysis** (Linear Regression) and **Outlier Detection** |
+| 🔬 **Physics Metrics** | Flow regime (Laminar/Turbulent), thermal stability, entropy |
+| 🛡️ **Validation** | Domain-aware plugins (e.g., Magic Bytes verification for PNG/PDF) |
+| 📈 **Dashboards** | Generates HTML reports with Chart.js visualization |
+| 🎯 **Cross-Platform** | Validated on Linux, macOS (Intel/ARM), and Windows |
 
 ## 📺 Demo
 
-```
+The TUI provides a wealth of real-time information:
+
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    FluxPhy Transfer Status                  │
 ├──────────────────────────┬──────────────────────────────────┤
-│  ╔════════════════════╗  │         Flux Rate R(t)           │
-│  ║ Transfer Metrics   ║  │                                  │
-│  ╚════════════════════╝  │    250 ┤           ╭──╮          │
-│                          │        │         ╭─╯  ╰─╮        │
-│  File: document.pdf      │    200 ┤       ╭─╯      ╰─╮      │
-│  Size: 45.2 MB           │        │     ╭─╯          ╰─╮    │
-│                          │    150 ┤   ╭─╯              ╰─╮  │
-│  Progress: 67.3%         │        │ ╭─╯                  ╰─ │
-│  [████████░░░░░░]        │    100 ┤─╯                       │
-│                          │        └─────────────────────────│
-│  Flux Rate: 234.5 MB/s   │        0s    5s    10s    15s    │
-│  Mean Rate: 218.3 MB/s   │                                  │
-│                          │  Flow Regime: Laminar            │
-│  Elapsed: 00:02:15       │  Thermal Stability: 0.92         │
-│  ETA: 00:00:45           │  Flux Density: 0.87              │
+│  Flux Rate: 234.5 MB/s   │           ╭──╮                   │
+│  Trend: ↗ Accel          │         ╭─╯  ╰─╮        ╭─       │
+│  Status: Laminar Flow    │       ╭─╯      ╰─╮    ╭─╯        │
+│                          │     ╭─╯          ╰─╮╭─╯          │
+│  File: dataset.csv       │   ╭─╯              ╰─            │
+│  [████████░░░░░░] 67%    │ ╭─╯                              │
+│                          └──────────────────────────────────┤
+│  ETA: 45s                │  Physics Metrics                 │
+│  Stability: 0.98         │  Entropy: 2.1 bits               │
+│  Outliers: 0             │  Regime: Laminar (CV < 0.05)     │
 ├──────────────────────────┴──────────────────────────────────┤
-│ [Q] Quit  [P] Pause  [R] Resume  [S] Save Metrics           │
+│ [S] Generate Dashboard  [H] Help  [Q] Quit                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## 🚀 Installation
 
-### Cargo (Recommended)
+See [DISTRIBUTION.md](DISTRIBUTION.md) for a comprehensive guide on setting up your own distribution pipeline.
+
+### Rust (Recommended)
 ```bash
 cargo install fluxphy
 ```
 
-### Homebrew (macOS/Linux)
-```bash
-brew tap BGSTA9/tap
-brew install fluxphy
-```
-
-### pip / uv
+### Python / Universal
 ```bash
 pip install fluxphy
 # or
 uv pip install fluxphy
 ```
 
+### macOS (Homebrew)
+```bash
+brew tap bgsta9/tap
+brew install fluxphy
+```
+
 ### Docker
 ```bash
-docker pull ghcr.io/bgsta9/fluxphy:latest
-docker run --rm -v $(pwd):/data ghcr.io/bgsta9/fluxphy /data/source.txt /data/dest/
+docker run -it ghcr.io/bgsta9/fluxphy
 ```
 
 ### From Source
@@ -101,85 +110,59 @@ cargo build --release
 sudo cp target/release/fluxphy /usr/local/bin/
 ```
 
-### Pre-built Binaries
-Download from [GitHub Releases](https://github.com/BGSTA9/fluxphy/releases)
-
 ## 📖 Usage
 
+### Basic Transfer
 ```bash
-# Basic file copy
-fluxphy source.txt /destination/
+# Copy file to destination
+fluxphy source_file.csv /data/dest/
 
-# Directory copy (recursive)
-fluxphy /data/ /backup/ --recursive
+# Copy directory recursively
+fluxphy /raw_data/ /processed_data/ -r
+```
 
-# With checksum verification
-fluxphy important.zip /backup/ --verify
+### Verification & Analysis
+```bash
+# Analyze first, validation plugins enabled
+fluxphy dataset.fastq /backup/ --verify
 
-# Full physics analysis report
-fluxphy largefile.iso /dest/ --analyze
+# Run in quiet mode (scripts)
+fluxphy data.bin /server/ --quiet
+```
 
-# Quiet mode (for scripts)
-fluxphy file.txt /dest/ --quiet
+### Keyboard Shortcuts
+*   **`S`**: Generate an HTML dashboard Report instantly.
+*   **`H`**: Toggle the Help/Legend overlay.
+*   **`Q`**: Quit/Cancel transfer.
+
+## 📦 Data Provenance
+
+FluxPhy is designed for scientific workflows where **Reproducibility** is key. Every transfer generates a `provenance.json` in the destination directory following the **W3C PROV-O** standard.
+
+```json
+{
+  "@context": "http://www.w3.org/ns/prov#",
+  "@type": "Activity",
+  "label": "FluxPhy Transfer",
+  "startTime": "2023-10-27T10:00:00Z",
+  "used": [ { "entity": "source_file", "size": 1048576 } ],
+  "generated": [ { "entity": "dest_file", "size": 1048576 } ],
+  "agent": { "type": "Person", "name": "user" }
+}
 ```
 
 ## 🔬 Physics Metrics
 
 FluxPhy treats file transfers as a physical process:
 
-| Metric | Formula | Description |
-|--------|---------|-------------|
-| **Flux Rate** | `R(t)` | Transfer speed over time (MB/s) |
-| **Thermal Stability** | `S = 1 - CV` | Higher = more stable transfer |
-| **Flow Regime** | `CV thresholds` | Laminar → Chaotic classification |
-| **Shannon Entropy** | `H = -Σ p(r) log₂ p(r)` | Rate distribution randomness |
-| **Flux Density** | `ρ = R / R_max` | Efficiency vs theoretical max |
+| Metric | Description |
+|--------|-------------|
+| **Flux Rate** | Instantaneous throughput ($R(t)$). Highlighted **RED** if outlier detected. |
+| **Trend** | ↗ Accelerating, → Stable, or ↘ Decelerating based on linear regression. |
+| **Flow Regime** | **Laminar** (<5% variance) vs **Turbulent** (>15% variance). |
+| **Shannon Entropy** | Measures the "randomness" of the rate distribution. |
 
-### Flow Regimes
-
-| Regime | CV Range | Behavior |
-|--------|----------|----------|
-| 🟢 **Laminar** | < 0.05 | Smooth, predictable |
-| 🟡 **Transitional** | 0.05 – 0.15 | Minor fluctuations |
-| 🟠 **Turbulent** | 0.15 – 0.30 | Significant variations |
-| 🔴 **Chaotic** | ≥ 0.30 | Highly unpredictable |
-
-## ⚙️ Configuration
-
-Create `~/.config/fluxphy/config.toml`:
-
-```toml
-[general]
-buffer_size = 8      # MB
-sample_rate = 100    # ms
-
-[ui]
-theme = "default"
-show_graph = true
-
-[behavior]
-verify = false
-force = false
-```
-
-## 📊 Metrics Output
-
-Every transfer generates a JSON file with complete analytics:
-
-```json
-{
-  "statistics": {
-    "mean_rate_mb_s": 210.34,
-    "coefficient_of_variation": 0.059
-  },
-  "physics_metrics": {
-    "flow_regime": "Laminar",
-    "thermal_stability": 0.94,
-    "shannon_entropy": 2.67
-  },
-  "rate_history": [[0.1, 198.4], [0.2, 208.3], ...]
-}
-```
+---
 
 ## 🤝 Contributing
 
@@ -188,8 +171,6 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
----
 
 <p align="center">
   Made with 🔬 by <a href="https://github.com/BGSTA9">Argo Navis Research Laboratory</a>
