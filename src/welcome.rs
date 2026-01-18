@@ -1,7 +1,7 @@
 //! Neofetch-style welcome screen for FluxPhy
 
-use crossterm::style::{Attribute, Color, Print, ResetColor, SetAttribute, SetForegroundColor, Stylize};
-use crossterm::{execute, cursor, terminal};
+use crossterm::style::{Color, Print, ResetColor, SetForegroundColor, Stylize};
+use crossterm::execute;
 use std::io::{stdout, Write};
 
 /// Theme Colors
@@ -23,9 +23,6 @@ const GITHUB_URL: &str = "https://github.com/BGSTA9/fluxphy";
 
 /// Author Name
 const AUTHOR: &str = "Argo Navis Research Laboratory";
-
-/// Welcome Message
-const WELCOME_MSG: &str = "Physics of Data Flux";
 
 /// Info lines to display (Introduction + Metadata)
 /// Returns: (Color, Label, Value, IsItalic)
