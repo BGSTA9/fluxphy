@@ -22,7 +22,7 @@ const LOGO_PARTS: [(&str, &str); 6] = [
 const GITHUB_URL: &str = "https://github.com/BGSTA9/fluxphy";
 
 /// Author Name
-const AUTHOR: &str = "Argo Navis Research Laboratory";
+const DEVELOPED_BY: &str = "Argo Navis Research Laboratory";
 
 /// Info lines to display (Introduction + Metadata)
 /// Returns: (Color, Label, Value, IsItalic)

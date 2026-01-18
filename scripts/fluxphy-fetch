@@ -13,7 +13,7 @@ NC='\e[0m'                      # Reset
 
 # --- Tool Information Gathering ---
 VERSION="0.1.0"
-AUTHOR="Argo Navis Research Laboratory"
+DEVELOPED_BY="Argo Navis Research Laboratory"
 GITHUB="https://github.com/BGSTA9/fluxphy"
 LICENSE="MIT"
 
