@@ -12,6 +12,7 @@ mod metrics;
 mod physics;
 mod ui;
 mod utils;
+mod welcome;
 
 use crate::cli::Cli;
 use crate::config::Config;
@@ -291,6 +292,8 @@ async fn main() -> FluxResult<()> {
     if cli.quiet {
         run_quiet(&cli, total_size, progress_rx).await?;
     } else {
+        // Display welcome screen before TUI
+        welcome::display_welcome_with_delay(1500);
         run_tui(&cli, total_size, progress_rx, cancelled_clone).await?;
     }
 
