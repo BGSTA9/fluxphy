@@ -1,3 +1,4 @@
+%%bash
 #!/usr/bin/env bash
 #
 # fluxphy-fetch - Neofetch-style info display for FluxPhy
@@ -12,15 +13,17 @@ NC='\e[0m'                      # Reset
 
 # --- Tool Information Gathering ---
 VERSION="0.1.0"
-AUTHOR="Argo Navis Research Lab"
+AUTHOR="Argo Navis Research Laboratory"
+GITHUB="https://github.com/BGSTA9/fluxphy"
 LICENSE="MIT"
+
 
 # Detect if fluxphy binary exists
 if command -v fluxphy &> /dev/null; then
     VERSION=$(fluxphy --version 2>/dev/null | awk '{print $2}' || echo "0.1.0")
-    STATUS="${GREEN}✓ Installed${NC}"
+    STATUS="${GREEN}Installed ✓ ${NC}"
 else
-    STATUS="${ORANGE}○ Not in PATH${NC}"
+    STATUS="${RED} ❌ Not in PATH${NC}"
 fi
 
 # --- System Information Gathering (Cross-Platform) ---
@@ -62,21 +65,21 @@ BLANK="                                           "
 echo -e ""
 echo -e "${L1}   ${GREEN}VERSION${NC}  | ${WHITE}${VERSION}${NC}"
 echo -e "${L2}   ${GREEN}STATUS${NC}   | ${STATUS}"
-echo -e "${L3}   ${GREEN}AUTHOR${NC}   | ${WHITE}${AUTHOR}${NC}"
-echo -e "${L4}   ${GREEN}LICENSE${NC}  | ${WHITE}${LICENSE}${NC}"
-echo -e "${L5}   ${ORANGE}─────────────────────────────────${NC}"
-echo -e "${L6}   ${GREEN}OS${NC}       | ${WHITE}${OS}${NC}"
-echo -e "${BLANK}   ${GREEN}KERNEL${NC}   | ${WHITE}${KERNEL}${NC}"
-echo -e "${BLANK}   ${GREEN}CPU${NC}      | ${WHITE}${CPU}${NC}"
-echo -e "${BLANK}   ${GREEN}GPU${NC}      | ${WHITE}${GPU}${NC}"
-echo -e "${BLANK}   ${GREEN}RAM${NC}      | ${WHITE}${RAM}${NC}"
-echo -e "${BLANK}   ${GREEN}SHELL${NC}    | ${WHITE}${SHELL_NAME}${NC}"
-echo -e "${BLANK}   ${GREEN}TERMINAL${NC} | ${WHITE}${TERMINAL}${NC}"
-echo -e "${BLANK}   ${GREEN}UPTIME${NC}   | ${WHITE}${UPTIME}${NC}"
-echo -e "${BLANK}   ${ORANGE}─────────────────────────────────${NC}"
-echo -e "${BLANK}   ${GREEN}📊${NC} Real-time throughput    ${GREEN}⚛️${NC}  Physics metrics"
-echo -e "${BLANK}   ${ORANGE}🔍${NC} Bottleneck detection    ${ORANGE}📈${NC} HTML dashboard"
-echo -e "${BLANK}   ${GREEN}📚${NC} Help panel [H]          ${ORANGE}💾${NC} Save dashboard [S]"
-echo -e "${BLANK}   ${ORANGE}─────────────────────────────────${NC}"
-echo -e "${BLANK}   ${GREEN}███${ORANGE}███${NC}"
+echo -e "${L3}  ${GREEN}AUTHOR${NC}   | ${WHITE}${AUTHOR}${NC}"
+echo -e "${L4}   ${GREEN}GITHUB${NC}   | ${WHITE}${GITHUB}${NC}"
+echo -e "${L5}   ${GREEN}LICENSE${NC}  | ${WHITE}${LICENSE}${NC}"
+echo -e "${L6}   ${ORANGE}────────────────────────────────────────────────${NC}"
+echo -e "${BLANK}    ${GREEN}OS${NC}       | ${WHITE}${OS}${NC}"
+echo -e "${BLANK}    ${GREEN}KERNEL${NC}   | ${WHITE}${KERNEL}${NC}"
+echo -e "${BLANK}    ${GREEN}CPU${NC}      | ${WHITE}${CPU}${NC}"
+echo -e "${BLANK}    ${GREEN}GPU${NC}      | ${WHITE}${GPU}${NC}"
+echo -e "${BLANK}    ${GREEN}RAM${NC}      | ${WHITE}${RAM}${NC}"
+echo -e "${BLANK}    ${GREEN}SHELL${NC}    | ${WHITE}${SHELL_NAME}${NC}"
+echo -e "${BLANK}    ${GREEN}TERMINAL${NC} | ${WHITE}${TERMINAL}${NC}"
+echo -e "${BLANK}    ${GREEN}UPTIME${NC}   | ${WHITE}${UPTIME}${NC}"
+echo -e "${BLANK}    ${ORANGE}────────────────────────────────────────────────${NC}"
+echo -e "${BLANK}    ${GREEN}📊${NC} Real-time throughput    ${GREEN}⚛️${NC} Physics metrics"
+echo -e "${BLANK}    ${GREEN}📚${NC} Help panel [H]          ${ORANGE}💾${NC} Save dashboard [S]"
+echo -e "${BLANK}    ${ORANGE}────────────────────────────────────────────────${NC}"
+echo -e "${BLANK}    ${GREEN}███${ORANGE}███${NC}"
 echo -e ""
