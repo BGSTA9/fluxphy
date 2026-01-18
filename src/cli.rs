@@ -14,7 +14,7 @@ pub struct Cli {
     pub fetch: bool,
 
     /// Source file(s) and destination path (last argument is destination)
-    #[arg(num_args = 1..)]
+    #[arg(num_args = 0..)]
     pub paths: Vec<PathBuf>,
 
     /// Copy directories recursively
