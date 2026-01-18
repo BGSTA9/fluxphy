@@ -25,21 +25,39 @@ const LOGO_LINES: [&str; 7] = [
     r"                                       ",
 ];
 
+use sysinfo::System;
+
 /// Info lines to display on the right
 fn get_info_lines() -> Vec<(Color, String, String)> {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    let os_name = System::name().unwrap_or("Unknown".to_string());
+    let os_version = System::os_version().unwrap_or("".to_string());
+    let host_name = System::host_name().unwrap_or("localhost".to_string());
+    let uptime = System::uptime();
+    let uptime_hours = uptime / 3600;
+    let uptime_mins = (uptime % 3600) / 60;
+    
+    let total_mem = sys.total_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
+    let used_mem = sys.used_memory() as f64 / 1024.0 / 1024.0 / 1024.0;
+    
+    // CPU info
+    let cpu_brand = sys.cpus().first().map(|cpu| cpu.brand().to_string()).unwrap_or("Unknown CPU".to_string());
+    let cpu_usage = sys.global_cpu_usage();
+
     vec![
         (Color::Cyan, "FluxPhy".to_string(), format!("v{}", env!("CARGO_PKG_VERSION"))),
-        (Color::White, "".to_string(), "─".repeat(25)),
-        (Color::Yellow, "Author".to_string(), "Argo Navis Research Lab".to_string()),
-        (Color::Green, "License".to_string(), "MIT".to_string()),
+        (Color::White, "".to_string(), "─".repeat(30)),
+        (Color::Green, "User".to_string(), format!("{}@{}", whoami::username().unwrap_or("user".to_string()), host_name)),
+        (Color::Yellow, "OS".to_string(), format!("{} {}", os_name, os_version)),
+        (Color::Blue, "Kernel".to_string(), System::kernel_version().unwrap_or("unknown".to_string())),
+        (Color::Magenta, "Uptime".to_string(), format!("{}h {}m", uptime_hours, uptime_mins)),
+        (Color::Red, "CPU".to_string(), format!("{} ({:.1}%)", cpu_brand.trim(), cpu_usage)),
+        (Color::Rgb { r: 255, g: 100, b: 0 }, "Memory".to_string(), format!("{:.2} GiB / {:.2} GiB", used_mem, total_mem)),
         (Color::White, "".to_string(), "".to_string()),
-        (Color::Rgb { r: 0, g: 255, b: 136 }, "📊".to_string(), "Real-time throughput graphs".to_string()),
-        (Color::Rgb { r: 0, g: 212, b: 255 }, "⚛️ ".to_string(), "Physics-inspired metrics".to_string()),
-        (Color::Rgb { r: 255, g: 100, b: 100 }, "🔍".to_string(), "Bottleneck detection".to_string()),
-        (Color::Rgb { r: 255, g: 204, b: 0 }, "📈".to_string(), "HTML dashboard export".to_string()),
-        (Color::Rgb { r: 200, g: 100, b: 255 }, "📚".to_string(), "Dummy-friendly help panel".to_string()),
-        (Color::White, "".to_string(), "".to_string()),
-        (Color::DarkGrey, "Keys".to_string(), "[H] Help  [S] Dashboard  [Q] Quit".to_string()),
+        (Color::DarkGrey, "Terminal".to_string(), std::env::var("TERM").unwrap_or("unknown".to_string())),
+        (Color::DarkGrey, "Shell".to_string(), std::env::var("SHELL").unwrap_or("unknown".to_string())),
     ]
 }
 

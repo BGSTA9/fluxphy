@@ -290,6 +290,19 @@ fn print_summary(metrics: &TransferMetrics) {
 async fn main() -> FluxResult<()> {
     let cli = Cli::parse();
 
+    // Handle fetch command
+    if cli.fetch {
+        welcome::display_welcome();
+        return Ok(());
+    }
+
+    // Ensure we have enough arguments for a copy operation
+    if cli.paths.len() < 2 {
+        use clap::CommandFactory;
+        Cli::command().print_help()?;
+        return Ok(());
+    }
+
     // Load config (use defaults if not present)
     let _config = Config::load().unwrap_or_default();
 
@@ -438,6 +451,7 @@ async fn main() -> FluxResult<()> {
 impl Clone for Cli {
     fn clone(&self) -> Self {
         Self {
+            fetch: self.fetch,
             paths: self.paths.clone(),
             recursive: self.recursive,
             quiet: self.quiet,

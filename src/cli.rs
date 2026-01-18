@@ -9,8 +9,12 @@ use std::path::PathBuf;
 #[command(version = "0.1.0")]
 #[command(about = "A file transfer tool with deep instrumentation into the physics of data flux", long_about = None)]
 pub struct Cli {
+    /// Display system info (neofetch style)
+    #[arg(long)]
+    pub fetch: bool,
+
     /// Source file(s) and destination path (last argument is destination)
-    #[arg(required = true, num_args = 2..)]
+    #[arg(num_args = 1..)]
     pub paths: Vec<PathBuf>,
 
     /// Copy directories recursively
