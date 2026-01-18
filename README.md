@@ -22,60 +22,11 @@
   <img src="https://img.shields.io/badge/rust-1.75+-orange?logo=rust" alt="Rust Version">
 </p>
 
-<!-- Description -->
-<p align="center">
-  <em>A cross-platform TUI/CLI file transfer tool with deep instrumentation<br/>into the "physics" of data flux.</em>
-</p>
+## Introduction
 
-<p align="center">
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-usage">Usage</a> •
-  <a href="#-physics-metrics">Metrics</a> •
-  <a href="#-data-provenance">Provenance</a>
-</p>
+Refactoring the approach to digital data movement, **FluxPhy** goes beyond simple file copying by treating data transfer as a physical fluid dynamic process. It offers a cross-platform TUI/CLI experience with deep instrumentation into the "physics" of data flux, providing insights into flow regimes, stability, and entropy while ensuring data integrity and provenance.
 
----
-
-## ✨ Features
-
-FluxPhy goes beyond simple file copying by treating data transfer as a physical fluid dynamic process.
-
-| Feature | Description |
-|---------|-------------|
-| 🚀 **High-Performance** | Optimized 8MB buffered I/O with async operations |
-| 📊 **Real-Time TUI** | Live visualization with rate graph and "neolfetch" style summary |
-| 📦 **Data Provenance** | Generates **W3C PROV-O JSON-LD** records for scientific reproducibility |
-| 📉 **Advanced Modelling**| Real-time **Trend Analysis** (Linear Regression) and **Outlier Detection** |
-| 🔬 **Physics Metrics** | Flow regime (Laminar/Turbulent), thermal stability, entropy |
-| 🛡️ **Validation** | Domain-aware plugins (e.g., Magic Bytes verification for PNG/PDF) |
-| 📈 **Dashboards** | Generates HTML reports with Chart.js visualization |
-| 🎯 **Cross-Platform** | Validated on Linux, macOS (Intel/ARM), and Windows |
-
-## 📺 Demo
-
-The TUI provides a wealth of real-time information:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                    FluxPhy Transfer Status                  │
-├──────────────────────────┬──────────────────────────────────┤
-│  Flux Rate: 234.5 MB/s   │           ╭──╮                   │
-│  Trend: ↗ Accel          │         ╭─╯  ╰─╮        ╭─       │
-│  Status: Laminar Flow    │       ╭─╯      ╰─╮    ╭─╯        │
-│                          │     ╭─╯          ╰─╮╭─╯          │
-│  File: dataset.csv       │   ╭─╯              ╰─            │
-│  [████████░░░░░░] 67%    │ ╭─╯                              │
-│                          └──────────────────────────────────┤
-│  ETA: 45s                │  Physics Metrics                 │
-│  Stability: 0.98         │  Entropy: 2.1 bits               │
-│  Outliers: 0             │  Regime: Laminar (CV < 0.05)     │
-├──────────────────────────┴──────────────────────────────────┤
-│ [S] Generate Dashboard  [H] Help  [Q] Quit                  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 🚀 Installation
+## Installation
 
 See [DISTRIBUTION.md](DISTRIBUTION.md) for a comprehensive guide on setting up your own distribution pipeline.
 
@@ -110,7 +61,7 @@ cargo build --release
 sudo cp target/release/fluxphy /usr/local/bin/
 ```
 
-## 📖 Usage
+## Usage
 
 ### Basic Transfer
 ```bash
@@ -135,7 +86,33 @@ fluxphy data.bin /server/ --quiet
 *   **`H`**: Toggle the Help/Legend overlay.
 *   **`Q`**: Quit/Cancel transfer.
 
-## 📦 Data Provenance
+## Features
+
+FluxPhy distinguishes itself with high-performance metrics and simulation-grade analysis:
+
+| Feature | Description |
+|---------|-------------|
+| 🚀 **High-Performance** | Optimized 8MB buffered I/O with async operations |
+| 📊 **Real-Time TUI** | Live visualization with rate graph and "neolfetch" style summary |
+| 📦 **Data Provenance** | Generates **W3C PROV-O JSON-LD** records for scientific reproducibility |
+| 📉 **Advanced Modelling**| Real-time **Trend Analysis** (Linear Regression) and **Outlier Detection** |
+| 🔬 **Physics Metrics** | Flow regime (Laminar/Turbulent), thermal stability, entropy |
+| 🛡️ **Validation** | Domain-aware plugins (e.g., Magic Bytes verification for PNG/PDF) |
+| 📈 **Dashboards** | Generates HTML reports with Chart.js visualization |
+| 🎯 **Cross-Platform** | Validated on Linux, macOS (Intel/ARM), and Windows |
+
+### Physics Metrics
+
+FluxPhy treats file transfers as a physical process:
+
+| Metric | Description |
+|--------|-------------|
+| **Flux Rate** | Instantaneous throughput ($R(t)$). Highlighted **RED** if outlier detected. |
+| **Trend** | ↗ Accelerating, → Stable, or ↘ Decelerating based on linear regression. |
+| **Flow Regime** | **Laminar** (<5% variance) vs **Turbulent** (>15% variance). |
+| **Shannon Entropy** | Measures the "randomness" of the rate distribution. |
+
+### Data Provenance
 
 FluxPhy is designed for scientific workflows where **Reproducibility** is key. Every transfer generates a `provenance.json` in the destination directory following the **W3C PROV-O** standard.
 
@@ -151,16 +128,28 @@ FluxPhy is designed for scientific workflows where **Reproducibility** is key. E
 }
 ```
 
-## 🔬 Physics Metrics
+## Layouts [Screenshots]
 
-FluxPhy treats file transfers as a physical process:
+The TUI provides a wealth of real-time information, visualizing your data flux:
 
-| Metric | Description |
-|--------|-------------|
-| **Flux Rate** | Instantaneous throughput ($R(t)$). Highlighted **RED** if outlier detected. |
-| **Trend** | ↗ Accelerating, → Stable, or ↘ Decelerating based on linear regression. |
-| **Flow Regime** | **Laminar** (<5% variance) vs **Turbulent** (>15% variance). |
-| **Shannon Entropy** | Measures the "randomness" of the rate distribution. |
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    FluxPhy Transfer Status                  │
+├──────────────────────────┬──────────────────────────────────┤
+│  Flux Rate: 234.5 MB/s   │           ╭──╮                   │
+│  Trend: ↗ Accel          │         ╭─╯  ╰─╮        ╭─       │
+│  Status: Laminar Flow    │       ╭─╯      ╰─╮    ╭─╯        │
+│                          │     ╭─╯          ╰─╮╭─╯          │
+│  File: dataset.csv       │   ╭─╯              ╰─            │
+│  [████████░░░░░░] 67%    │ ╭─╯                              │
+│                          └──────────────────────────────────┤
+│  ETA: 45s                │  Physics Metrics                 │
+│  Stability: 0.98         │  Entropy: 2.1 bits               │
+│  Outliers: 0             │  Regime: Laminar (CV < 0.05)     │
+├──────────────────────────┴──────────────────────────────────┤
+│ [S] Generate Dashboard  [H] Help  [Q] Quit                  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
