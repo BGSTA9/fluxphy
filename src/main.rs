@@ -5,6 +5,7 @@
 
 mod cli;
 mod config;
+mod dashboard;
 mod error;
 mod flux;
 mod metrics;
@@ -63,10 +64,23 @@ async fn run_tui(
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = Instant::now();
 
+    // System info for bottleneck detection
+    let mut sys = System::new();
+    let mut last_sysinfo_update = Instant::now();
+
     loop {
         // Check for cancellation
         if cancelled.load(Ordering::Relaxed) {
             break;
+        }
+
+        // Refresh sysinfo periodically (every 500ms to avoid overhead)
+        if last_sysinfo_update.elapsed() >= Duration::from_millis(500) {
+            sys.refresh_cpu_usage();
+            sys.refresh_memory();
+            state.cpu_usage = sys.global_cpu_usage();
+            state.memory_usage = (sys.used_memory() as f64 / sys.total_memory().max(1) as f64 * 100.0) as f32;
+            last_sysinfo_update = Instant::now();
         }
 
         // Draw UI
@@ -89,7 +103,13 @@ async fn run_tui(
                             state.paused = false;
                         }
                         KeyCode::Char('s') | KeyCode::Char('S') => {
-                            // Save metrics (TODO: implement mid-transfer save)
+                            // Generate HTML dashboard
+                            if let Ok(path) = crate::dashboard::generate_dashboard(&state) {
+                                state.dashboard_path = Some(path);
+                            }
+                        }
+                        KeyCode::Char('h') | KeyCode::Char('H') => {
+                            state.show_help = !state.show_help;
                         }
                         _ => {}
                     }
@@ -112,8 +132,14 @@ async fn run_tui(
 
             // Check if transfer complete
             if state.bytes_copied >= state.total_size {
+                // Set completion status
+                state.transfer_status = crate::ui::TransferStatus::Success {
+                    duration: state.elapsed_secs,
+                    size_bytes: state.total_size,
+                    mean_rate: state.mean_rate,
+                };
                 // Wait a moment to show completion
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                tokio::time::sleep(Duration::from_millis(1500)).await;
                 break;
             }
         }

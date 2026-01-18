@@ -62,7 +62,25 @@ pub enum Bottleneck {
     CPU,
     Memory,
     Network,
+    /// Not enough data collected yet
+    InsufficientData,
+    /// Could not determine after analysis
     Unknown,
+}
+
+impl Bottleneck {
+    /// Get a user-friendly description of what this bottleneck means
+    pub fn describe(&self) -> &'static str {
+        match self {
+            Bottleneck::DiskRead => "Your disk is slow at reading files. Think of it like a slow librarian finding books.",
+            Bottleneck::DiskWrite => "Your disk is slow at writing files. Like a printer that can't keep up.",
+            Bottleneck::CPU => "Your processor is working too hard. The brain of your computer needs a break!",
+            Bottleneck::Memory => "Your computer is running low on working memory. Too many things open at once.",
+            Bottleneck::Network => "The network connection is the slowest part. Like a narrow road with traffic.",
+            Bottleneck::InsufficientData => "Not enough measurements yet to determine the bottleneck.",
+            Bottleneck::Unknown => "The system is well-balanced; no clear bottleneck detected.",
+        }
+    }
 }
 
 impl std::fmt::Display for Bottleneck {
@@ -73,7 +91,8 @@ impl std::fmt::Display for Bottleneck {
             Bottleneck::CPU => write!(f, "CPU"),
             Bottleneck::Memory => write!(f, "Memory"),
             Bottleneck::Network => write!(f, "Network"),
-            Bottleneck::Unknown => write!(f, "Unknown"),
+            Bottleneck::InsufficientData => write!(f, "Analyzing..."),
+            Bottleneck::Unknown => write!(f, "Balanced"),
         }
     }
 }

@@ -232,7 +232,8 @@ Flow Analysis:
             Bottleneck::CPU => "CPU was the primary limiting factor",
             Bottleneck::Memory => "memory pressure was the primary limiting factor",
             Bottleneck::Network => "network bandwidth was the primary limiting factor",
-            Bottleneck::Unknown => "the primary bottleneck could not be determined",
+            Bottleneck::InsufficientData => "not enough data was collected to determine the bottleneck",
+            Bottleneck::Unknown => "the system was well-balanced with no clear bottleneck",
         };
 
         format!(
