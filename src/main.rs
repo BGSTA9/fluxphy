@@ -3,20 +3,25 @@
 //! A cross-platform TUI/CLI file copy tool that provides deep instrumentation
 //! into the "physics" of data flux.
 
+mod analysis;
 mod cli;
 mod config;
+
 mod dashboard;
 mod error;
 mod flux;
 mod metrics;
 mod physics;
+mod provenance;
 mod ui;
 mod utils;
+mod validation;
 mod welcome;
 
 use crate::cli::Cli;
 use crate::config::Config;
 use crate::error::{FluxError, FluxResult};
+use crate::validation::Validator;
 use crate::flux::{FluxCopier, ProgressUpdate};
 use crate::metrics::TransferMetrics;
 use crate::physics::SystemConstraints;
@@ -121,9 +126,22 @@ async fn run_tui(
         // Process progress updates
         while let Ok(update) = progress_rx.try_recv() {
             state.bytes_copied = update.bytes_copied;
+            if update.current_rate > 0.0 {
+                state.time_series.add_sample(update.current_rate);
+                state.analysis_result = state.time_series.analyze();
+            }
+
             state.current_rate = update.current_rate;
-            state.elapsed_secs = update.elapsed_secs;
-            state.rate_history.push((update.elapsed_secs, update.current_rate));
+            state.mean_rate = update.mean_rate;
+            state.peak_rate = update.peak_rate;
+            
+            // Update physics metrics
+            // We need to pass the history to physics metrics update if we want real-time regime change
+            // For now, let's keep the simplified CV calculation in flux.rs or here.
+            // But we DO have rate_history in state.
+            
+            state.rate_history.push((update.elapsed_secs, update.current_rate)); 
+
             if let Some(file) = update.current_file {
                 state.current_file = file;
             }
@@ -221,6 +239,14 @@ async fn perform_transfer(
             file_count += count;
             total_bytes += bytes;
         } else {
+            // Optional: Run validation before transfer
+            // For now, we just log/warn if invalid, but proceed (or could skip)
+            let validator = validation::MagicBytesValidator;
+            if let Ok(validation::ValidationResult::Invalid(reason)) = validator.validate(source) {
+                eprintln!("Warning: Skipping invalid file {}: {}", source.display(), reason);
+                continue;
+            }
+
             let bytes = copier.copy_file(source, dest, Some(&progress_tx))?;
             file_count += 1;
             total_bytes += bytes;
@@ -316,24 +342,79 @@ async fn main() -> FluxResult<()> {
     let dest_str = cli.destination().display().to_string();
 
     let mut metrics = TransferMetrics::new(
-        source_str,
-        dest_str,
-        total_bytes,
+        source_str.clone(),
+        dest_str.clone(),
+        total_size,
         file_count,
         elapsed,
         rate_history,
-        500.0, // Theoretical max (adjust based on disk)
+        500.0, // Theoretical max (should be configurable)
     );
 
     let constraints = SystemConstraints::analyze(
         cpu_usage,
-        0.0,
-        metrics.statistics.mean_rate,
+        0.0, // disk read proxy
+        metrics.statistics.mean_rate, // disk write proxy
         memory_usage,
         metrics.statistics.mean_rate,
         500.0,
     );
     metrics.update_system_constraints(constraints);
+
+    // --- PROVENANCE GENERATION (Phase 7) ---
+    let mut prov = provenance::ProvRecord::new();
+    let agent = provenance::capture_agent();
+    let agent_id = agent.id.clone();
+    prov.graph.push(provenance::ProvElement::Agent(agent));
+
+    // Source Entity
+    let source_id = format!("urn:file:{}", uuid::Uuid::new_v4());
+    prov.graph.push(provenance::ProvElement::Entity(provenance::ProvEntity {
+        id: source_id.clone(),
+        was_attributed_to: agent_id.clone(),
+        path: source_str,
+        size: total_size, // Assuming single file size proxy
+        checksum: None, // TODO: Add real checksum
+    }));
+
+    // Destination Entity
+    let dest_id = format!("urn:file:{}", uuid::Uuid::new_v4());
+    prov.graph.push(provenance::ProvElement::Entity(provenance::ProvEntity {
+        id: dest_id.clone(),
+        was_attributed_to: agent_id.clone(),
+        path: dest_str,
+        size: total_bytes,
+        checksum: None,
+    }));
+
+    // Activity
+    let activity_id = provenance::generate_activity_id();
+    prov.graph.push(provenance::ProvElement::Activity(provenance::ProvActivity {
+        id: activity_id,
+        start_time: chrono::Local::now().to_rfc3339(),
+        end_time: Some(chrono::Local::now().to_rfc3339()),
+        was_associated_with: vec![agent_id],
+        used: vec![source_id],
+        generated: vec![dest_id],
+        mean_rate: Some(metrics.statistics.mean_rate),
+        flow_regime: Some(format!("{:?}", metrics.physics_metrics.flow_regime)),
+    }));
+
+    // Save provenance file
+    if let Ok(dest_path) = std::fs::canonicalize(cli.destination()) {
+         let prov_path = if dest_path.is_dir() {
+             dest_path.join("provenance.json")
+         } else {
+             // If dest is file, put prov in same dir
+             dest_path.parent().unwrap_or(Path::new(".")).join("provenance.json")
+         };
+         
+         if let Err(e) = prov.save(&prov_path) {
+             eprintln!("Warning: Failed to save provenance record: {}", e);
+         } else if !cli.quiet {
+             println!("Provenance record saved to: {}", prov_path.display());
+         }
+    }
 
     // Print summary
     print_summary(&metrics);

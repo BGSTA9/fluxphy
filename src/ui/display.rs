@@ -1,5 +1,6 @@
 //! TUI display layout and rendering for FluxPhy
 
+use crate::analysis::{AnalysisResult, TimeSeriesModel, TrendStatus};
 use crate::physics::{Bottleneck, FlowRegime, FluxStatistics, PhysicsMetrics, SystemConstraints};
 use crate::ui::plot::render_flux_graph;
 use crate::utils::{format_duration, format_rate, format_size};
@@ -65,6 +66,10 @@ pub struct AppState {
     pub dashboard_path: Option<std::path::PathBuf>,
     /// Transfer status for completion notification
     pub transfer_status: TransferStatus,
+    /// Time-series analysis model
+    pub time_series: TimeSeriesModel,
+    /// Latest analysis result
+    pub analysis_result: Option<AnalysisResult>,
 }
 
 /// Transfer completion status
@@ -99,7 +104,7 @@ impl Default for AppState {
             variance: 0.0,
             std_dev: 0.0,
             cv: 0.0,
-            bottleneck: Bottleneck::InsufficientData,
+            bottleneck: Bottleneck::Unknown,
             system_constraints: None,
             cpu_usage: 0.0,
             memory_usage: 0.0,
@@ -110,7 +115,9 @@ impl Default for AppState {
             file_index: 0,
             total_files: 1,
             dashboard_path: None,
-            transfer_status: TransferStatus::default(),
+            transfer_status: TransferStatus::InProgress,
+            time_series: TimeSeriesModel::new(50), // Keep 50 samples history
+            analysis_result: None,
         }
     }
 }
@@ -372,7 +379,11 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::raw("Current: "),
             Span::styled(
                 format_rate(state.current_rate),
-                Style::default().fg(Color::Green),
+                if state.analysis_result.as_ref().map(|r| r.is_outlier).unwrap_or(false) {
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)
+                } else {
+                    Style::default().fg(Color::Green)
+                },
             ),
         ]),
         Line::from(vec![
@@ -444,6 +455,20 @@ fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
                 format!("{:.2} MB/s", state.std_dev),
                 Style::default().fg(Color::White),
             ),
+        ]),
+        Line::from(vec![
+            Span::raw("Trend: "),
+             match &state.analysis_result {
+                Some(res) => {
+                     let (text, color) = match res.trend_status {
+                         TrendStatus::Accelerating => ("↗ Accel", Color::Green),
+                         TrendStatus::Stable => ("→ Stable", Color::Cyan),
+                         TrendStatus::Decelerating => ("↘ Decel", Color::Red),
+                     };
+                     Span::styled(text, Style::default().fg(color))
+                },
+                None => Span::raw("Analyzing..."),
+            }
         ]),
         Line::from(""),
         Line::from(vec![

@@ -29,6 +29,10 @@ pub struct ProgressUpdate {
     pub file_index: usize,
     /// Total file count
     pub total_files: usize,
+    /// Mean transfer rate (MB/s)
+    pub mean_rate: f64,
+    /// Peak transfer rate (MB/s)
+    pub peak_rate: f64,
 }
 
 /// Transfer state for external monitoring
@@ -88,6 +92,8 @@ pub struct FluxCopier {
     total_bytes_copied: u64,
     /// Start time of transfer
     start_time: Option<Instant>,
+    /// Peak rate observed
+    peak_rate: f64,
 }
 
 impl FluxCopier {
@@ -99,6 +105,7 @@ impl FluxCopier {
             rate_samples: Vec::with_capacity(1000),
             total_bytes_copied: 0,
             start_time: None,
+            peak_rate: 0.0,
         }
     }
 
@@ -215,6 +222,16 @@ impl FluxCopier {
 
                 self.rate_samples.push((elapsed, rate));
 
+                if rate > self.peak_rate {
+                    self.peak_rate = rate;
+                }
+
+                let mean_rate = if elapsed > 0.0 {
+                    self.total_bytes_copied as f64 / elapsed / (1024.0 * 1024.0)
+                } else {
+                    0.0
+                };
+
                 // Send progress update
                 if let Some(tx) = progress_tx {
                     let _ = tx.send(ProgressUpdate {
@@ -224,6 +241,8 @@ impl FluxCopier {
                         current_file: Some(source.file_name().unwrap_or_default().to_string_lossy().to_string()),
                         file_index: 0,
                         total_files: 1,
+                        mean_rate,
+                        peak_rate: self.peak_rate,
                     });
                 }
 
@@ -270,13 +289,24 @@ impl FluxCopier {
 
             // Update progress with file info
             if let Some(tx) = progress_tx {
+                // Approximate mean/peak for directory intermediate updates
+                let elapsed = self.start_time.map(|s| s.elapsed().as_secs_f64()).unwrap_or(0.0);
+                let current_rate = self.rate_samples.last().map(|(_, r)| *r).unwrap_or(0.0);
+                let mean_rate = if elapsed > 0.0 {
+                     self.total_bytes_copied as f64 / elapsed / (1024.0 * 1024.0)
+                } else {
+                    0.0
+                };
+                
                 let _ = tx.send(ProgressUpdate {
                     bytes_copied: self.total_bytes_copied,
-                    current_rate: self.rate_samples.last().map(|(_, r)| *r).unwrap_or(0.0),
-                    elapsed_secs: self.start_time.map(|s| s.elapsed().as_secs_f64()).unwrap_or(0.0),
+                    current_rate,
+                    elapsed_secs: elapsed,
                     current_file: Some(file_path.file_name().unwrap_or_default().to_string_lossy().to_string()),
                     file_index: idx,
                     total_files,
+                    mean_rate,
+                    peak_rate: self.peak_rate,
                 });
             }
 

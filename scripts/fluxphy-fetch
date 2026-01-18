@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+#
+# fluxphy-fetch - Neofetch-style info display for FluxPhy
+#
+
+# --- Color Definitions (TrueColor RGB) ---
+GREEN='\e[38;2;135;242;165m'    # Vibrant Phosphor Green
+ORANGE='\e[38;2;255;160;65m'    # Retro CRT Orange
+DIM_GREEN='\e[38;2;80;160;100m' # Dimmer green
+WHITE='\e[38;2;255;255;255m'    # White text
+NC='\e[0m'                      # Reset
+
+# --- Tool Information Gathering ---
+VERSION="0.1.0"
+AUTHOR="Argo Navis Research Lab"
+LICENSE="MIT"
+
+# Detect if fluxphy binary exists
+if command -v fluxphy &> /dev/null; then
+    VERSION=$(fluxphy --version 2>/dev/null | awk '{print $2}' || echo "0.1.0")
+    STATUS="${GREEN}✓ Installed${NC}"
+else
+    STATUS="${ORANGE}○ Not in PATH${NC}"
+fi
+
+# --- System Information Gathering (Cross-Platform) ---
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    OS="$(sw_vers -productName) $(sw_vers -productVersion)"
+    KERNEL=$(uname -r)
+    CPU=$(sysctl -n machdep.cpu.brand_string 2>/dev/null | sed 's/(R)//g' | sed 's/(TM)//g' | xargs)
+    GPU=$(system_profiler SPDisplaysDataType 2>/dev/null | grep "Chipset Model" | head -1 | sed 's/.*: //' || echo "N/A")
+    MEM_TOTAL=$(( $(sysctl -n hw.memsize 2>/dev/null) / 1024 / 1024 / 1024 ))
+    MEM_USED=$(vm_stat 2>/dev/null | awk '/Pages active/ {print int($3 * 4096 / 1024 / 1024 / 1024)}' || echo "?")
+    RAM="${MEM_USED:-?}GB / ${MEM_TOTAL}GB"
+else
+    # Linux
+    OS=$(grep -P '^PRETTY_NAME' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"' || uname -s)
+    KERNEL=$(uname -r)
+    CPU=$(lscpu 2>/dev/null | grep "Model name" | sed 's/Model name: *//' | sed 's/ @.*//' | xargs || echo "N/A")
+    GPU=$(lspci 2>/dev/null | grep -i vga | sed 's/.*: //' | head -1 || echo "N/A")
+    MEM_USED=$(free -g 2>/dev/null | awk '/Mem:/ { print $3 }' || echo "?")
+    MEM_TOTAL=$(free -g 2>/dev/null | awk '/Mem:/ { print $2 }' || echo "?")
+    RAM="${MEM_USED}GB / ${MEM_TOTAL}GB"
+fi
+
+SHELL_NAME=$(basename "$SHELL")
+TERMINAL="${TERM_PROGRAM:-$TERM}"
+UPTIME=$(uptime | sed 's/.*up //' | sed 's/,.*//' | xargs)
+
+# --- Logo Construction ---
+# Each line is split into Green (FLUX) and Orange (O-symbol)
+L1="${GREEN}██████╗ ██╗     ██╗   ██╗ ██╗  ██╗${ORANGE}  ██████╗ ${NC}"
+L2="${GREEN}██╔═══╝ ██║     ██║   ██║ ╚██╗██╔╝${ORANGE} ██╔═══██╗${NC}"
+L3="${GREEN}█████╗  ██║     ██║   ██║  ╚███╔╝ ${ORANGE}██████████║${NC}"
+L4="${GREEN}██╔══╝  ██║     ██║   ██║  ██╔██╗ ${ORANGE} ██╔═══██║${NC}"
+L5="${GREEN}██║     ███████╗╚██████╔╝ ██╔╝ ██╗${ORANGE} ╚██████╔╝${NC}"
+L6="${GREEN}╚═╝     ╚══════╝ ╚═════╝  ╚═╝  ╚═╝${ORANGE}  ╚═════╝ ${NC}"
+BLANK="                                           "
+
+# --- Tool Output ---
+echo -e ""
+echo -e "${L1}   ${GREEN}VERSION${NC}  | ${WHITE}${VERSION}${NC}"
+echo -e "${L2}   ${GREEN}STATUS${NC}   | ${STATUS}"
+echo -e "${L3}   ${GREEN}AUTHOR${NC}   | ${WHITE}${AUTHOR}${NC}"
+echo -e "${L4}   ${GREEN}LICENSE${NC}  | ${WHITE}${LICENSE}${NC}"
+echo -e "${L5}   ${ORANGE}─────────────────────────────────${NC}"
+echo -e "${L6}   ${GREEN}OS${NC}       | ${WHITE}${OS}${NC}"
+echo -e "${BLANK}   ${GREEN}KERNEL${NC}   | ${WHITE}${KERNEL}${NC}"
+echo -e "${BLANK}   ${GREEN}CPU${NC}      | ${WHITE}${CPU}${NC}"
+echo -e "${BLANK}   ${GREEN}GPU${NC}      | ${WHITE}${GPU}${NC}"
+echo -e "${BLANK}   ${GREEN}RAM${NC}      | ${WHITE}${RAM}${NC}"
+echo -e "${BLANK}   ${GREEN}SHELL${NC}    | ${WHITE}${SHELL_NAME}${NC}"
+echo -e "${BLANK}   ${GREEN}TERMINAL${NC} | ${WHITE}${TERMINAL}${NC}"
+echo -e "${BLANK}   ${GREEN}UPTIME${NC}   | ${WHITE}${UPTIME}${NC}"
+echo -e "${BLANK}   ${ORANGE}─────────────────────────────────${NC}"
+echo -e "${BLANK}   ${GREEN}📊${NC} Real-time throughput    ${GREEN}⚛️${NC}  Physics metrics"
+echo -e "${BLANK}   ${ORANGE}🔍${NC} Bottleneck detection    ${ORANGE}📈${NC} HTML dashboard"
+echo -e "${BLANK}   ${GREEN}📚${NC} Help panel [H]          ${ORANGE}💾${NC} Save dashboard [S]"
+echo -e "${BLANK}   ${ORANGE}─────────────────────────────────${NC}"
+echo -e "${BLANK}   ${GREEN}███${ORANGE}███${NC}"
+echo -e ""
