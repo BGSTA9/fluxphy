@@ -447,6 +447,14 @@ fn render_transfer_info_panel(frame: &mut Frame, area: Rect, state: &AppState) {
                 Style::default().fg(Color::White),
             ),
         ]),
+        // Buffer queue visualization
+        Line::from(vec![
+            Span::raw("Queue: "),
+            Span::styled("█", Style::default().fg(THEME_NEON_GREEN)),  // Verified
+            Span::styled("█", Style::default().fg(THEME_CYAN)),        // Writing
+            Span::styled("░", Style::default().fg(Color::DarkGray)),   // Pending
+            Span::styled("░", Style::default().fg(Color::DarkGray)),
+        ]),
         Line::from(vec![
             Span::raw("Errors: "),
             Span::styled(
@@ -471,13 +479,25 @@ fn render_transfer_info_panel(frame: &mut Frame, area: Rect, state: &AppState) {
 /// Panel 2: Rate Statistics
 fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
     // Get recent history for potential sparkline rendering
-    let _recent_history: Vec<(f64, f64)> = state.rate_history
+    let recent_history: Vec<(f64, f64)> = state.rate_history
         .iter()
         .rev()
         .take(30)
         .rev()
         .cloned()
         .collect();
+    
+    // Create inline mini sparkline (last 8 points)
+    let sparkline_vis = if recent_history.len() >= 8 {
+        let last_8: Vec<f64> = recent_history.iter().rev().take(8).map(|(_, r)| *r).collect();
+        let max = last_8.iter().fold(0.0f64, |a, &b| a.max(b)).max(1.0);
+        last_8.iter().rev().map(|&v| {
+            let idx = ((v / max) * 7.0).round() as usize;
+            ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'][idx.min(7)]
+        }).collect::<String>()
+    } else {
+        "────────".to_string()
+    };
     
     let info = vec![
         Line::from(vec![
@@ -501,6 +521,10 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
                 format_rate(state.mean_rate),
                 Style::default().fg(Color::White),
             ),
+        ]),
+        Line::from(vec![
+            Span::raw("     "),
+            Span::styled(&sparkline_vis, Style::default().fg(THEME_CYAN)),
         ]),
         Line::from(vec![
             Span::raw("Peak: "),
@@ -646,6 +670,18 @@ fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Style::default().fg(THEME_MAGENTA),
         )));
     }
+    
+    // Add mini oscilloscope (simplified inline version)
+    info.push(Line::from(""));
+    info.push(Line::from(Span::styled("Oscilloscope:", Style::default().fg(THEME_CYAN))));
+    let osc_line = if state.entropy > 0.0 {
+        let pattern = vec!['─', '╱', '─', '╲', '─', '╱', '─', '╲'];
+        pattern.iter().collect::<String>()
+    } else {
+        "────────".to_string()
+    };
+    info.push(Line::from(Span::styled(osc_line, Style::default().fg(THEME_CYAN))));
+
 
     let paragraph = Paragraph::new(info)
         .block(
