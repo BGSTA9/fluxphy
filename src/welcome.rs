@@ -268,7 +268,7 @@ pub fn display_welcome() {
     println!();
     execute!(stdout, SetForegroundColor(THEME_GREEN), Print(format!("Author: {}", AUTHOR)), ResetColor).ok();
     println!();
-    execute!(stdout, SetForegroundColor(Color::Blue), Print(format!("GitHub: {}", GITHUB_URL)), White).ok();
+    execute!(stdout, SetForegroundColor(Color::Blue), Print(format!("GitHub: {}", GITHUB_URL)), ResetColor).ok();
     println!();
     
     stdout.flush().ok();
