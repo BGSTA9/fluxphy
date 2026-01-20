@@ -1,106 +1,113 @@
 # FluxPhy User Guide 📘
 
-Welcome to **FluxPhy**, the file transfer tool that treats data as a physical fluid. This guide will take you from zero to expert.
+Welcome to **FluxPhy**, the file transfer tool that treats data as a physical fluid. This guide is your complete reference for mastering the tool, from basic copying to advanced physics-based optimization.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### Installation
-Ensure you have FluxPhy installed. Run the following to verify:
-```bash
-fluxphy --fetch
-```
-You should see a beautiful system information screen. If not, refer to [README.md](README.md#installation).
-
----
-
-## 🔰 Tutorial 1: Your First Transfer
-
-FluxPhy works just like `cp` or `rsync` but with superpowers.
-
-**Scenario**: You want to copy a large video file `movie.mkv` to your external drive `/Volumes/Backup`.
-
+### Basic Copy
+Copy a file to a destination:
 ```bash
 fluxphy movie.mkv /Volumes/Backup/
 ```
 
-**What happens?**
-1.  FluxPhy launches a **Graphical Interface** in your terminal.
-2.  You see a real-time graph of the transfer speed.
-3.  Metrics like "Thermal Stability" and "Flow Regime" update live.
-
----
-
-## 📊 Tutorial 2: Mastering the Interface
-
-The interface is divided into two main areas:
-
-### 1. The Rate Graph (Top)
-*   **Y-Axis**: Transfer speed in MB/s.
-*   **X-Axis**: Time (scrolling right to left).
-*   **Trend Line**: Watch for "↗ Accel" (Speeding up) or "↘ Decel" (Slowing down).
-
-### 2. The Metrics Dashboard (Bottom)
-*   **Flux Rate**: Current speed. If it blinks **RED**, it means the speed is unstable (an "outlier").
-*   **Flow Regime**:
-    *   🟢 **Laminar**: Smooth, consistent speed. Ideal.
-    *   🔴 **Turbulent/Chaotic**: Highly variable speed. Usually means disk contention or network issues.
-*   **Entropy**: A measure of randomness. Lower is better/smoother.
-
-### Keyboard Shortcuts
-*   **`H`**: Toggle the **Help Overlay** if you forget what a metric means.
-*   **`S`**: Instantly generate an **HTML Dashboard Report** relative to where you ran the command.
-*   **`Q`**: Abort the transfer.
-
----
-
-## 🔬 Tutorial 3: Scientific Verification
-
-If you are moving critical data (e.g., research data, backups), use the `--verify` flag or `--analyze`.
-
+### Recursive Copy
+Copy an entire directory:
 ```bash
-fluxphy archive.zip /server/backup/ --verify
-```
-
-*   **Verification**: FluxPhy calculates the SHA-256 hash of source and destination to ensure bit-perfect integrity.
-*   **Post-Transfer**: Check the destination folder for `provenance.json`. This file proves *who* moved *what*, *where*, and *when*.
-
----
-
-## 🤖 Tutorial 4: Automation & Scripts
-
-FluxPhy is script-friendly. Use `--quiet` to suppress the UI and output only critical info or errors.
-
-```bash
-fluxphy data.csv /backup/ --quiet
-```
-
-### JSON Output
-Every transfer automatically logs detailed metrics to a JSON file (e.g., `fluxphy_metrics_TIMESTAMP.json`). You can use this for your own analysis pipelines:
-
-```json
-{
-  "statistics": { "mean_rate": 150.5 },
-  "physics_metrics": { "flow_regime": "Laminar" }
-}
+fluxphy /path/to/source_folder /path/to/destination/ -r
 ```
 
 ---
 
-## ❓ FAQ & Troubleshooting
+## 📖 Command Reference
 
-**Q: My transfer is "Turbulent". Is that bad?**
-A: It's not "bad" (data is safe), but it means your transfer isn't efficient. It might be due to:
-*   Copying thousands of tiny files (overhead).
-*   Another program using the disk.
-*   Network congestion.
+### Arguments
+`fluxphy [SOURCES]... [DESTINATION]`
+- **SOURCES**: One or more files or directories to copy.
+- **DESTINATION**: The final argument. Must be a directory if copying multiple sources.
 
-**Q: Can I copy folders?**
-A: Yes! Use the `--recursive` (or `-r`) flag.
+### Flags & Options
+
+#### General
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--recursive` | `-r` | Required for copying directories. |
+| `--force` | `-f` | Overwrite existing files at the destination without prompting. |
+| `--verify` | | Calculate SHA-256 checksums after transfer to ensure data integrity. Adds processing time but guarantees safety. |
+| `--help` | `-h` | Print help information. |
+| `--version` | `-V` | Print version information. |
+| `--fetch` | | Display system information in a "neofetch" style. |
+| `--welcome` | | Display the introductory welcome screen. |
+
+#### Interface & Output
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--quiet` | `-q` | **Headless Mode**. Disables the TUI. Useful for scripts and cron jobs. Shows a simple progress bar. |
+| `--color` | | specific color output mode: `auto`, `always`, or `never`. Default is `auto`. |
+| `--analyze` | `-a` | Enable detailed post-transfer analysis reporting. |
+| `--physics-verbose` | | Enable verbose logging of physics metrics (thermal stability, entropy) to stdout/stderr. |
+| `--metrics-file <FILE>` | | Save JSON metrics to a specific file path instead of the default `fluxphy_metrics_<timestamp>.json`. |
+
+#### ⚡ Performance Tuning
+Use these flags to optimize FluxPhy for your specific hardware.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--buffer-size <MB>` | `8` | Size of the memory buffer in Megabytes. <br>• **Increase (e.g., 64, 128)**: For very fast massive files (NVMe SSDs). Reduces system call overhead.<br>• **Decrease**: For low-memory systems. |
+| `--sample-rate <MS>` | `100` | How often (in milliseconds) to update metrics and UI.<br>• **Higher (e.g., 500)**: Reduces CPU usage, slightly better transfer speeds on weak CPUs.<br>• **Lower (e.g., 10)**: Extremely smooth graphs, higher CPU usage. |
+
+**Example - High Performance Copy:**
 ```bash
-fluxphy /my/folder /backup/ -r
+# Optimized for NVMe to NVMe transfer of a large ISO
+fluxphy large_game.iso /mnt/games/ --buffer-size 64
 ```
 
-**Q: What is `provenance.json`?**
-A: It's a "receipt" for your data. It adheres to the W3C PROV-O standard, useful for scientific data management.
+---
+
+## 🖥️ The Graphical Interface (TUI)
+
+When running without `--quiet`, you enter the Interactive Physics Interface.
+
+### Keyboard Controls
+| Key | Action |
+|-----|--------|
+| **`Q`** | **Quit**. Abort the transfer immediately. |
+| **`P`** | **Pause**. Temporarily halt the flow. |
+| **`R`** | **Resume**. Continue the flow from where it left off. |
+| **`S`** | **Snapshot**. Generate a static HTML dashboard of the current metrics. |
+| **`H`** | **Help**. Toggle the help overlay. |
+
+### Understanding the Metrics
+- **Flow Regime**:
+    - 🟢 **Laminar**: Smooth, efficient transfer.
+    - 🔴 **Turbulent**: Variable speed. Indicates bottlenecks (disk seeking, CPU limits).
+- **Thermal Stability**: A metaphor for consistency. High stability means predictable performance.
+- **IOPS**: Estimated Input/Output Operations Per Second.
+
+---
+
+## 🔬 Advanced Usage
+
+### Scientific Verification & Provenance
+For archival or research data, FluxPhy automatically generates a `provenance.json` file at the destination. This file adheres to W3C standards and records:
+- Who moved the data (Agent).
+- When it was moved (Activity).
+- The "Physics" of the transfer (Flow Regime).
+
+Combine with `--verify` for maximum confidence:
+```bash
+fluxphy /data/experiment_results /archive/ -r --verify
+```
+
+### Scripting & Automation
+For automated backups, use quiet mode and redirect output if needed:
+```bash
+fluxphy /important/data /backup/drive -r --quiet --force --metrics-file /var/log/fluxphy/daily.json
+```
+
+### Troubleshooting
+- **"Turbulent" Flow**: If your graph is jagged:
+    1. Check for other disk-heavy processes.
+    2. If moving many small files, this is normal (file creation overhead).
+    3. Try increasing `--buffer-size` if moving large files.
