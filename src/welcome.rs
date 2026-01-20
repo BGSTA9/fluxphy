@@ -188,7 +188,7 @@ pub fn display_fetch() {
             // Actually let's count spaces.
             // P1 length is 30 unicode chars + color codes. 
             // Let's use a fixed padding string
-            print!("                                           "); 
+            print!("                                            "); 
         }
         
         print!("   "); // Spacer between logo and info
@@ -268,7 +268,7 @@ pub fn display_welcome() {
     println!();
     execute!(stdout, SetForegroundColor(THEME_GREEN), Print(format!("Author: {}", AUTHOR)), ResetColor).ok();
     println!();
-    execute!(stdout, SetForegroundColor(Color::Blue), Print(format!("GitHub: {}", GITHUB_URL)), ResetColor).ok();
+    execute!(stdout, SetForegroundColor(Color::Blue), Print(format!("GitHub: {}", GITHUB_URL)), White).ok();
     println!();
     
     stdout.flush().ok();
