@@ -200,7 +200,7 @@ pub fn display_fetch() {
             if *label == "SEP" {
                  execute!(stdout, SetForegroundColor(THEME_ORANGE), Print("────────────────────────────────────────────────"), ResetColor).ok();
             } else {
-                 execute!(stdout, SetForegroundColor(THEME_GREEN), Print(format!("{:<8}", label)), ResetColor).ok();
+                 execute!(stdout, SetForegroundColor(THEME_GREEN), Print(format!("{:>8}", label)), ResetColor).ok();
                  print!(" | ");
                  
                  if *label == "STATUS" {

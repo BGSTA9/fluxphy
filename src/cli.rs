@@ -13,6 +13,10 @@ pub struct Cli {
     #[arg(long)]
     pub fetch: bool,
 
+    /// Display the welcome/intro screen
+    #[arg(long)]
+    pub welcome: bool,
+
     /// Source file(s) and destination path (last argument is destination)
     #[arg(num_args = 0..)]
     pub paths: Vec<PathBuf>,

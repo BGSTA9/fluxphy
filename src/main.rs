@@ -339,6 +339,12 @@ async fn main() -> FluxResult<()> {
         return Ok(());
     }
 
+    // Handle welcome command
+    if cli.welcome {
+        welcome::display_welcome();
+        return Ok(());
+    }
+
     // Ensure we have enough arguments for a copy operation
     if cli.paths.len() < 2 {
         use clap::CommandFactory;
@@ -497,6 +503,7 @@ impl Clone for Cli {
     fn clone(&self) -> Self {
         Self {
             fetch: self.fetch,
+            welcome: self.welcome,
             paths: self.paths.clone(),
             recursive: self.recursive,
             quiet: self.quiet,

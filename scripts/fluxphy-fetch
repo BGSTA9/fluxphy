@@ -55,7 +55,7 @@ UPTIME=$(uptime | sed 's/.*up //' | sed 's/,.*//' | xargs)
 # Each line is split into Green (FLUX) and Orange (O-symbol)
 L1="${GREEN}██████╗ ██╗     ██╗   ██╗ ██╗  ██╗${ORANGE}  ██████╗ ${NC}"
 L2="${GREEN}██╔═══╝ ██║     ██║   ██║ ╚██╗██╔╝${ORANGE} ██╔═══██╗${NC}"
-L3="${GREEN}█████╗  ██║     ██║   ██║  ╚███╔╝ ${ORANGE}██████████║${NC}"
+L3="${GREEN}█████╗  ██║     ██║   ██║  ╚███╔╝${ORANGE}██████████║${NC}"
 L4="${GREEN}██╔══╝  ██║     ██║   ██║  ██╔██╗ ${ORANGE} ██╔═══██║${NC}"
 L5="${GREEN}██║     ███████╗╚██████╔╝ ██╔╝ ██╗${ORANGE} ╚██████╔╝${NC}"
 L6="${GREEN}╚═╝     ╚══════╝ ╚═════╝  ╚═╝  ╚═╝${ORANGE}  ╚═════╝ ${NC}"
