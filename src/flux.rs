@@ -156,6 +156,7 @@ impl FluxCopier {
         source: P,
         dest: P,
         progress_tx: Option<&mpsc::UnboundedSender<ProgressUpdate>>,
+        paused: Option<Arc<AtomicBool>>,
     ) -> FluxResult<u64> {
         let source = source.as_ref();
         let dest = dest.as_ref();
@@ -198,6 +199,13 @@ impl FluxCopier {
         let mut last_sample_time = Instant::now();
 
         loop {
+            // Check pause state and sleep while paused
+            if let Some(ref pause_flag) = paused {
+                while pause_flag.load(Ordering::Relaxed) {
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            }
+
             let bytes_read = reader.read(&mut buffer)?;
             if bytes_read == 0 {
                 break;
@@ -261,6 +269,7 @@ impl FluxCopier {
         source: P,
         dest: P,
         progress_tx: Option<&mpsc::UnboundedSender<ProgressUpdate>>,
+        paused: Option<Arc<AtomicBool>>,
     ) -> FluxResult<(usize, u64)> {
         let source = source.as_ref();
         let dest = dest.as_ref();
@@ -310,7 +319,7 @@ impl FluxCopier {
                 });
             }
 
-            let bytes = self.copy_file(file_path, &dest_path, progress_tx)?;
+            let bytes = self.copy_file(file_path, &dest_path, progress_tx, paused.clone())?;
             total_bytes += bytes;
         }
 
@@ -393,7 +402,7 @@ mod tests {
         fs::write(&source, b"Hello, FluxPhy!").unwrap();
 
         let mut copier = FluxCopier::default();
-        copier.copy_file(&source, &dest, None).unwrap();
+        copier.copy_file(&source, &dest, None, None).unwrap();
 
         assert_eq!(fs::read(&source).unwrap(), fs::read(&dest).unwrap());
     }

@@ -1,0 +1,41 @@
+# FluxPhy UI/UX Overhaul Tasks
+
+## Phase 1: Bug Fixes (UI Issues)
+- [/] Fix 'P' button pause functionality - needs to actually pause the transfer task, not just set state
+- [ ] Fix 'Flux Rate' display - investigate and fix the non-working flux rate
+- [ ] Fix file size display mismatch - ensure TUI shows actual file size, not transferred bytes
+- [ ] Verify/enhance transfer completion notification (already partially implemented)
+
+## Phase 2: Aesthetic Overhaul (UX)
+- [ ] Update color palette to Cyberpunk theme:
+  - Background: #000000
+  - Primary: Cyan (#00FFFF)
+  - Accents: Neon Green (#39FF14), Magenta (#FF00FF), Amber (#FFD700)
+- [ ] Apply double-line/thick-block Unicode borders for active cells
+- [ ] Add time/date display in header
+- [ ] Enhance footer with keybindings row
+
+## Phase 3: Cell 1 - Transfer Panel Enhancements
+- [ ] Add circular progress visualization (pie chart representation)
+- [ ] Add stacked vertical bar for buffer/queue visualization
+- [ ] Add extended metadata: Chunks, Health, IOPS
+
+## Phase 4: Cell 2 - Rates Panel Enhancements
+- [ ] Add sparkline area graph for last 60 seconds
+- [ ] Add comparison bar chart for time intervals (1m, 5m, 15m, 1h)
+- [ ] Add trend indicators (↗/↘) next to ETA
+
+## Phase 5: Cell 3 - Physics Panel Enhancements
+- [ ] Add oscilloscope waveform visualization for entropy/signal noise
+- [ ] Add analog gauge (semi-circular) for temperature/pressure
+- [ ] Add vector field/heatmap using Braille patterns
+
+## Phase 6: Cell 4 - System Panel Enhancements
+- [ ] Add horizontal segmented resource bars for CPU/RAM
+- [ ] Add Disk I/O histogram
+- [ ] Add Network latency sparkline
+
+## Final Steps
+- [ ] Run cargo build and fix any compilation errors
+- [ ] Run cargo test to verify functionality
+- [ ] Create walkthrough documenting changes

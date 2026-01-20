@@ -1,0 +1,147 @@
+# FluxPhy UI/UX Overhaul Implementation Plan
+
+A comprehensive enhancement of FluxPhy's Terminal User Interface to achieve a sophisticated "Cyberpunk/Retro-futuristic Hard Science Dashboard" aesthetic with functional bug fixes.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Scope Clarification**: This is a substantial UI/UX overhaul. The plan prioritizes:
+> 1. **Bug fixes first** (Pause, Flux Rate, File Size, Notifications)
+> 2. **Aesthetic changes** (Color palette, borders, typography)
+> 3. **Advanced visualizations** (Oscilloscope, gauges, heatmaps)
+>
+> Some advanced visualizations (vector field heatmaps, analog gauges) are complex to implement in a TUI. I'll provide fallback simpler alternatives if needed.
+
+> [!WARNING]
+> **Font Dependency**: Monospaced fonts (JetBrains Mono, Fira Code) are terminal-dependent. The TUI will work with any monospace font, but Braille rendering quality varies by terminal.
+
+---
+
+## Proposed Changes
+
+### Bug Fixes Component
+
+#### [MODIFY] [main.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/main.rs)
+- **Fix Pause Functionality**: Currently, pressing 'P' only sets `state.paused = true` but doesn't pause the actual transfer. Add a `paused: Arc<AtomicBool>` shared between TUI and transfer task, with the copy loop checking this flag and sleeping while paused.
+- **File Size Display**: The TUI correctly uses `state.total_size`, but verify that the initial size calculation matches actual file metadata.
+
+#### [MODIFY] [flux.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs)
+- Add pause support: Accept an `Arc<AtomicBool>` for pause state
+- Check pause flag in copy loop and sleep while paused
+- Ensure [calculate_total_size](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs#127-152) returns accurate metadata size
+
+---
+
+### Aesthetic Overhaul Component
+
+#### [MODIFY] [display.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs)
+- **Color Palette Update**:
+  - Background: Use terminal default (black)
+  - Primary: `Color::Cyan` (#00FFFF)
+  - Accents: `Color::Green` for neon green, `Color::Magenta`, `Color::Yellow` (amber)
+  - Borders: `Color::Cyan` dimmed for inactive, bright for active
+- **Border Styles**:
+  - Active panels: `Borders::ALL` with double-line Unicode (╔╗╚╝)
+  - Inactive panels: Single-line or dashed borders
+- **Header Enhancement**: Add current date/time display
+- **Footer Enhancement**: Dedicated keybindings row with proper styling
+
+---
+
+### Cell 1: Transfer Panel Enhancement
+
+#### [MODIFY] [display.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs)
+- Add ASCII pie chart progress visualization using block characters
+- Add extended metadata display:
+  - Chunks: Show processed/total chunks
+  - Health: Error count, retry attempts
+  - IOPS: Calculate and display I/O operations per second
+- Update [AppState](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs#16-74) struct with new fields for chunk tracking
+
+---
+
+### Cell 2: Rates Panel Enhancement
+
+#### [NEW] [sparkline.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/sparkline.rs)
+- New module for advanced sparkline rendering
+- Implement rate history sparkline with Braille patterns
+- Implement comparison bar chart for interval averages
+
+#### [MODIFY] [display.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs)
+- Add trend indicators (↗ Improving, → Stable, ↘ Degrading) next to ETA
+- Integrate sparkline visualizations
+
+---
+
+### Cell 3: Physics Panel Enhancement
+
+#### [NEW] [oscilloscope.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/oscilloscope.rs)
+- Oscilloscope waveform visualization using Unicode characters
+- Bi-directional line centered on zero-axis for entropy/signal noise
+
+#### [MODIFY] [display.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs)
+- Add analog gauge rendering (semi-circular) for temperature
+- Add Braille-pattern based "turbulence cloud" visualization
+
+---
+
+### Cell 4: System Panel Enhancement
+
+#### [MODIFY] [display.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/display.rs)
+- Add segmented horizontal bars for CPU/RAM (retro-tech block style)
+- Add disk I/O histogram sparkline
+- Add network latency sparkline
+
+---
+
+### Module Registry Update
+
+#### [MODIFY] [mod.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/mod.rs)
+- Register new [sparkline](file:///Users/soheilsanati/Downloads/fluxphy/src/ui/plot.rs#71-104) module
+- Register new `oscilloscope` module
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Run existing unit tests**:
+   ```bash
+   cd /Users/soheilsanati/Downloads/fluxphy && cargo test
+   ```
+   This runs tests in [flux.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs) ([test_copy_file](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs#387-400), [test_checksum](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs#401-411), [test_verify_copy](file:///Users/soheilsanati/Downloads/fluxphy/src/flux.rs#412-423)) and [physics.rs](file:///Users/soheilsanati/Downloads/fluxphy/src/physics.rs) (flow regime, statistics, entropy, accuracy tests).
+
+2. **Build verification**:
+   ```bash
+   cd /Users/soheilsanati/Downloads/fluxphy && cargo build --release
+   ```
+
+### Manual Verification
+
+1. **Pause Functionality Test**:
+   - Run: `cargo run -- /path/to/large_file /tmp/dest`
+   - During transfer, press 'P' → transfer should pause (rate drops to 0)
+   - Press 'R' → transfer should resume
+   - Verify progress continues from where it paused
+
+2. **File Size Display Test**:
+   - Create a test file: `dd if=/dev/zero of=/tmp/testfile bs=1M count=100`
+   - Run: `cargo run -- /tmp/testfile /tmp/dest`
+   - Verify TUI shows "Size: 100 MB" matching actual file size
+
+3. **Visual Inspection**:
+   - Run a transfer and verify:
+     - Cyan/Magenta/Green color scheme is applied
+     - Date/time appears in header
+     - Double-line borders on active panels
+     - Transfer completion notification popup appears
+
+4. **Browser Recording** (optional):
+   - Record terminal session showing the new UI/UX
+
+---
+
+## Token Count Note
+
+As requested, after completing all work, I will calculate and save token counts to a [.md](file:///Users/soheilsanati/Downloads/fluxphy/dummy.md) file.

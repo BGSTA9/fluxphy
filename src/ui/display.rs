@@ -3,14 +3,34 @@
 use crate::analysis::{AnalysisResult, TimeSeriesModel, TrendStatus};
 use crate::physics::{Bottleneck, FlowRegime, FluxStatistics, PhysicsMetrics, SystemConstraints};
 use crate::ui::plot::render_flux_graph;
+use crate::ui::{gauges, oscilloscope, sparkline};
 use crate::utils::{format_duration, format_rate, format_size};
+use chrono::Local;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
+    symbols,
     text::{Line, Span},
-    widgets::{Block, Borders, Gauge, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CYBERPUNK COLOR PALETTE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Primary accent color - Cyan
+const THEME_CYAN: Color = Color::Rgb(0, 255, 255);
+/// Secondary accent - Neon Green  
+const THEME_NEON_GREEN: Color = Color::Rgb(57, 255, 20);
+/// Alert/Highlight - Magenta
+const THEME_MAGENTA: Color = Color::Rgb(255, 0, 255);
+/// Warning/Amber
+const THEME_AMBER: Color = Color::Rgb(255, 215, 0);
+/// Dimmed border color
+const THEME_DIM_CYAN: Color = Color::Rgb(0, 128, 128);
+/// Background-compatible gray
+const THEME_DARK_GRAY: Color = Color::Rgb(40, 40, 40);
 
 /// Application state for the TUI
 pub struct AppState {
@@ -70,6 +90,24 @@ pub struct AppState {
     pub time_series: TimeSeriesModel,
     /// Latest analysis result
     pub analysis_result: Option<AnalysisResult>,
+    /// Chunks processed
+    pub chunks_processed: usize,
+    /// Total chunks
+    pub chunks_total: usize,
+    /// Error count
+    pub error_count: usize,
+    /// Retry attempts
+    pub retry_attempts: usize,
+    /// IOPS (I/O operations per second)
+    pub iops: f64,
+    /// Rate average over 1 minute
+    pub rate_avg_1m: f64,
+    /// Rate average over 5 minutes
+    pub rate_avg_5m: f64,
+    /// Rate average over 15 minutes
+    pub rate_avg_15m: f64,
+    /// Rate average over 1 hour
+    pub rate_avg_1h: f64,
 }
 
 /// Transfer completion status
@@ -118,6 +156,15 @@ impl Default for AppState {
             transfer_status: TransferStatus::InProgress,
             time_series: TimeSeriesModel::new(50), // Keep 50 samples history
             analysis_result: None,
+            chunks_processed: 0,
+            chunks_total: 0,
+            error_count: 0,
+            retry_attempts: 0,
+            iops: 0.0,
+            rate_avg_1m: 0.0,
+            rate_avg_5m: 0.0,
+            rate_avg_15m: 0.0,
+            rate_avg_1h: 0.0,
         }
     }
 }
@@ -299,21 +346,37 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 }
 
 fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
+    // Get current date/time
+    let now = Local::now();
+    let datetime = now.format("%Y-%m-%d %H:%M:%S").to_string();
+    
     let title = if state.total_files > 1 {
         format!(
-            " FluxPhy Transfer Status [{}/{}] ",
+            " ⚡ FluxPhy [{}/{}] ",
             state.file_index + 1,
             state.total_files
         )
     } else {
-        " FluxPhy Transfer Status ".to_string()
+        " ⚡ FluxPhy ".to_string()
     };
 
-    let header = Block::default()
-        .title(title)
-        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray));
+    // Create header content with date/time on the right
+    let pause_indicator = if state.paused { " ▌▌ PAUSED " } else { "" };
+    let header_text = vec![Line::from(vec![
+        Span::styled(&title, Style::default().fg(THEME_CYAN).add_modifier(Modifier::BOLD)),
+        Span::raw(" "),
+        Span::styled(pause_indicator, Style::default().fg(THEME_MAGENTA).add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)),
+        Span::raw(" ".repeat(area.width.saturating_sub(title.len() as u16 + datetime.len() as u16 + pause_indicator.len() as u16 + 4) as usize)),
+        Span::styled(&datetime, Style::default().fg(THEME_AMBER)),
+    ])];
+
+    let header = Paragraph::new(header_text)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(THEME_DIM_CYAN))
+                .border_set(symbols::border::DOUBLE),
+        );
 
     frame.render_widget(header, area);
 }
@@ -322,9 +385,12 @@ fn render_header(frame: &mut Frame, area: Rect, state: &AppState) {
 fn render_transfer_info_panel(frame: &mut Frame, area: Rect, state: &AppState) {
     let progress = state.progress();
     
+    // Circular progress visualization
+    let progress_circle = sparkline::render_circular_progress(progress / 100.0);
+    
     let info = vec![
         Line::from(vec![
-            Span::styled("📁 Transfer", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("📁 Transfer", Style::default().fg(THEME_AMBER).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -338,21 +404,54 @@ fn render_transfer_info_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::raw("Size: "),
             Span::styled(
                 format_size(state.total_size),
-                Style::default().fg(Color::Cyan),
+                Style::default().fg(THEME_CYAN),
             ),
         ]),
         Line::from(vec![
             Span::raw("Done: "),
             Span::styled(
                 format_size(state.bytes_copied),
-                Style::default().fg(Color::Green),
+                Style::default().fg(THEME_NEON_GREEN),
             ),
         ]),
         Line::from(""),
+        // Circular progress
+        Line::from(Span::styled(
+            &progress_circle[0],
+            Style::default().fg(THEME_CYAN).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(Span::styled(
+            &progress_circle[1],
+            Style::default().fg(THEME_CYAN).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(""),
+        // Extended metadata
         Line::from(vec![
+            Span::raw("Flux Rate: "),
             Span::styled(
-                format!("▓ {:.1}%", progress),
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                format_rate(state.current_rate),
+                Style::default().fg(THEME_MAGENTA).add_modifier(Modifier::BOLD),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw("IOPS: "),
+            Span::styled(
+                format!("{:.1}", state.iops),
+                Style::default().fg(THEME_NEON_GREEN),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw("Chunks: "),
+            Span::styled(
+                format!("{}/{}", state.chunks_processed, state.chunks_total.max(1)),
+                Style::default().fg(Color::White),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw("Errors: "),
+            Span::styled(
+                format!("{}", state.error_count),
+                Style::default().fg(if state.error_count > 0 { Color::Red } else { Color::Green }),
             ),
         ]),
     ];
@@ -361,18 +460,28 @@ fn render_transfer_info_panel(frame: &mut Frame, area: Rect, state: &AppState) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(THEME_DIM_CYAN)),
         )
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);
 }
 
+
 /// Panel 2: Rate Statistics
 fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
+    // Get recent history for potential sparkline rendering
+    let _recent_history: Vec<(f64, f64)> = state.rate_history
+        .iter()
+        .rev()
+        .take(30)
+        .rev()
+        .cloned()
+        .collect();
+    
     let info = vec![
         Line::from(vec![
-            Span::styled("📊 Rates", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled("📊 Rates", Style::default().fg(THEME_NEON_GREEN).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -380,9 +489,9 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::styled(
                 format_rate(state.current_rate),
                 if state.analysis_result.as_ref().map(|r| r.is_outlier).unwrap_or(false) {
-                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)
+                    Style::default().fg(THEME_MAGENTA).add_modifier(Modifier::BOLD | Modifier::SLOW_BLINK)
                 } else {
-                    Style::default().fg(Color::Green)
+                    Style::default().fg(THEME_NEON_GREEN)
                 },
             ),
         ]),
@@ -397,7 +506,22 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::raw("Peak: "),
             Span::styled(
                 format_rate(state.peak_rate),
-                Style::default().fg(Color::Magenta),
+                Style::default().fg(THEME_MAGENTA),
+            ),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::raw("1m avg: "),
+            Span::styled(
+                format_rate(state.rate_avg_1m),
+                Style::default().fg(THEME_CYAN),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw("5m avg: "),
+            Span::styled(
+                format_rate(state.rate_avg_5m),
+                Style::default().fg(THEME_CYAN),
             ),
         ]),
         Line::from(""),
@@ -412,8 +536,20 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::raw("ETA: "),
             Span::styled(
                 format_duration(state.eta()),
-                Style::default().fg(Color::Yellow),
+                Style::default().fg(THEME_AMBER),
             ),
+            Span::raw(" "),
+            match &state.analysis_result {
+                Some(res) => {
+                    let (text, color) = match res.trend_status {
+                        TrendStatus::Accelerating => ("↗", THEME_NEON_GREEN),
+                        TrendStatus::Stable => ("→", THEME_CYAN),
+                        TrendStatus::Decelerating => ("↘", Color::Red),
+                    };
+                    Span::styled(text, Style::default().fg(color))
+                },
+                None => Span::raw(""),
+            }
         ]),
     ];
 
@@ -421,7 +557,7 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(THEME_DIM_CYAN)),
         )
         .wrap(Wrap { trim: true });
 
@@ -430,9 +566,23 @@ fn render_rate_stats_panel(frame: &mut Frame, area: Rect, state: &AppState) {
 
 /// Panel 3: Physics Metrics
 fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
-    let info = vec![
+    // Generate entropy signal for oscilloscope (for future oscilloscope rendering)
+    let _entropy_signal = oscilloscope::generate_entropy_signal(state.entropy, 20);
+    
+    // Generate turbulence field
+    let turbulence = gauges::render_turbulence_field(state.entropy, state.cv, 10, 3);
+    
+    // Temperature gauge lines
+    let temp_gauge = gauges::render_analog_gauge(
+        state.system_temp,
+        100.0,
+        Color::Cyan,
+        Color::Red,
+    );
+    
+    let mut info = vec![
         Line::from(vec![
-            Span::styled("⚛️ Physics", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("⚛️  Physics", Style::default().fg(THEME_AMBER).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -475,23 +625,33 @@ fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
             Span::raw("Entropy: "),
             Span::styled(
                 format!("{:.2} bits", state.entropy),
-                Style::default().fg(Color::Cyan),
-            ),
-        ]),
-        Line::from(vec![
-            Span::raw("Temp: "),
-            Span::styled(
-                format!("{:.2}", state.system_temp),
-                Style::default().fg(Color::White),
+                Style::default().fg(THEME_CYAN),
             ),
         ]),
     ];
+    
+    // Add temperature gauge
+    info.push(Line::from(""));
+    info.push(Line::from(Span::styled("Temp Gauge:", Style::default().fg(THEME_AMBER))));
+    for gauge_line in temp_gauge {
+        info.push(gauge_line);
+    }
+    
+    // Add turbulence field
+    info.push(Line::from(""));
+    info.push(Line::from(Span::styled("Turbulence:", Style::default().fg(THEME_MAGENTA))));
+    for turb_row in turbulence.iter().take(2) {
+        info.push(Line::from(Span::styled(
+            turb_row,
+            Style::default().fg(THEME_MAGENTA),
+        )));
+    }
 
     let paragraph = Paragraph::new(info)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(THEME_DIM_CYAN)),
         )
         .wrap(Wrap { trim: true });
 
@@ -500,9 +660,16 @@ fn render_physics_panel(frame: &mut Frame, area: Rect, state: &AppState) {
 
 /// Panel 4: System Status
 fn render_system_status_panel(frame: &mut Frame, area: Rect, state: &AppState) {
+    // Segmented resource bars
+    let cpu_color = if state.cpu_usage > 80.0 { Color::Red } else if state.cpu_usage > 60.0 { THEME_AMBER } else { THEME_NEON_GREEN };
+    let mem_color = if state.memory_usage > 80.0 { Color::Red } else if state.memory_usage > 60.0 { THEME_AMBER } else { THEME_NEON_GREEN };
+    
+    let cpu_bar = sparkline::render_segmented_bar(state.cpu_usage as f64, 10, cpu_color);
+    let mem_bar = sparkline::render_segmented_bar(state.memory_usage as f64, 10, mem_color);
+    
     let info = vec![
         Line::from(vec![
-            Span::styled("🖥️ System", Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD)),
+            Span::styled("🖥️  System", Style::default().fg(THEME_MAGENTA).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -516,23 +683,39 @@ fn render_system_status_panel(frame: &mut Frame, area: Rect, state: &AppState) {
         Line::from(vec![
             Span::raw("CPU: "),
             Span::styled(
-                format!("{:.1}%", state.cpu_usage),
-                Style::default().fg(if state.cpu_usage > 80.0 { Color::Red } else { Color::White }),
+                format!("{:>3.0}%", state.cpu_usage),
+                Style::default().fg(cpu_color),
             ),
         ]),
         Line::from(vec![
-            Span::raw("Memory: "),
+            Span::raw("  "),
+            cpu_bar,
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::raw("RAM: "),
             Span::styled(
-                format!("{:.1}%", state.memory_usage),
-                Style::default().fg(if state.memory_usage > 80.0 { Color::Red } else { Color::White }),
+                format!("{:>3.0}%", state.memory_usage),
+                Style::default().fg(mem_color),
             ),
+        ]),
+        Line::from(vec![
+            Span::raw("  "),
+            mem_bar,
         ]),
         Line::from(""),
         Line::from(vec![
             Span::raw("Stability: "),
             Span::styled(
                 format!("{:.2}", state.thermal_stability),
-                Style::default().fg(Color::Green),
+                Style::default().fg(THEME_NEON_GREEN),
+            ),
+        ]),
+        Line::from(vec![
+            Span::raw("Flux Den: "),
+            Span::styled(
+                format!("{:.2}", state.flux_density),
+                Style::default().fg(THEME_CYAN),
             ),
         ]),
     ];
@@ -541,7 +724,7 @@ fn render_system_status_panel(frame: &mut Frame, area: Rect, state: &AppState) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(THEME_DIM_CYAN)),
         )
         .wrap(Wrap { trim: true });
 
@@ -549,19 +732,36 @@ fn render_system_status_panel(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn render_footer(frame: &mut Frame, area: Rect, state: &AppState) {
-    let status = if state.paused { " [PAUSED] " } else { "" };
-
-    let footer_text = format!(
-        " [Q] Quit  [P] Pause  [R] Resume  [H] Help  [S] Dashboard{}  │  Flow: {}",
-        status, state.flow_regime
-    );
+    // Create styled keybindings with Cyberpunk theme
+    let footer_text = vec![Line::from(vec![
+        Span::styled(" [", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("Q", Style::default().fg(THEME_CYAN).add_modifier(Modifier::BOLD)),
+        Span::styled("] Quit  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("[", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("P", Style::default().fg(THEME_AMBER).add_modifier(Modifier::BOLD)),
+        Span::styled("] Pause  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("[", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("R", Style::default().fg(THEME_NEON_GREEN).add_modifier(Modifier::BOLD)),
+        Span::styled("] Resume  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("[", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("H", Style::default().fg(THEME_MAGENTA).add_modifier(Modifier::BOLD)),
+        Span::styled("] Help  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("[", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("S", Style::default().fg(THEME_CYAN).add_modifier(Modifier::BOLD)),
+        Span::styled("] Dashboard  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("│  ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled("Flow: ", Style::default().fg(THEME_DIM_CYAN)),
+        Span::styled(
+            format!("{}", state.flow_regime),
+            Style::default().fg(flow_regime_color(state.flow_regime)).add_modifier(Modifier::BOLD),
+        ),
+    ])];
 
     let footer = Paragraph::new(footer_text)
-        .style(Style::default().fg(Color::DarkGray))
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(THEME_DIM_CYAN)),
         );
 
     frame.render_widget(footer, area);

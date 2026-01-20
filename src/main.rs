@@ -50,6 +50,7 @@ async fn run_tui(
     total_size: u64,
     mut progress_rx: mpsc::UnboundedReceiver<ProgressUpdate>,
     cancelled: Arc<AtomicBool>,
+    paused: Arc<AtomicBool>,
 ) -> FluxResult<()> {
     // Setup terminal
     enable_raw_mode()?;
@@ -103,9 +104,11 @@ async fn run_tui(
                             break;
                         }
                         KeyCode::Char('p') | KeyCode::Char('P') => {
+                            paused.store(true, Ordering::Relaxed);
                             state.paused = true;
                         }
                         KeyCode::Char('r') | KeyCode::Char('R') => {
+                            paused.store(false, Ordering::Relaxed);
                             state.paused = false;
                         }
                         KeyCode::Char('s') | KeyCode::Char('S') => {
@@ -148,6 +151,24 @@ async fn run_tui(
             state.file_index = update.file_index;
             state.total_files = update.total_files;
             state.update_stats();
+            
+            // Calculate time-window rate averages
+            let now = update.elapsed_secs;
+            state.rate_avg_1m = calculate_window_avg(&state.rate_history, now, 60.0);
+            state.rate_avg_5m = calculate_window_avg(&state.rate_history, now, 300.0);
+            state.rate_avg_15m = calculate_window_avg(&state.rate_history, now, 900.0);
+            state.rate_avg_1h = calculate_window_avg(&state.rate_history, now, 3600.0);
+            
+            // Calculate IOPS (approximation: samples per second * transfer frequency)
+            state.iops = if update.elapsed_secs > 0.0 {
+                state.rate_history.len() as f64 / update.elapsed_secs
+            } else {
+                0.0
+            };
+            
+            // Estimate chunks
+            state.chunks_total = (state.total_size / (8 * 1024 * 1024)).max(1) as usize; // 8MB chunks
+            state.chunks_processed = (state.bytes_copied / (8 * 1024 * 1024)) as usize;
 
             // Check if transfer complete
             if state.bytes_copied >= state.total_size {
@@ -222,6 +243,7 @@ async fn run_quiet(
 async fn perform_transfer(
     cli: &Cli,
     progress_tx: mpsc::UnboundedSender<ProgressUpdate>,
+    paused: Arc<AtomicBool>,
 ) -> FluxResult<(FluxCopier, u64, usize)> {
     let mut copier = FluxCopier::new(cli.buffer_size, cli.sample_rate);
     let sources = cli.sources();
@@ -235,7 +257,7 @@ async fn perform_transfer(
             if !cli.recursive {
                 return Err(FluxError::RecursiveRequired);
             }
-            let (count, bytes) = copier.copy_directory(source, dest, Some(&progress_tx))?;
+            let (count, bytes) = copier.copy_directory(source, dest, Some(&progress_tx), Some(paused.clone()))?;
             file_count += count;
             total_bytes += bytes;
         } else {
@@ -247,7 +269,7 @@ async fn perform_transfer(
                 continue;
             }
 
-            let bytes = copier.copy_file(source, dest, Some(&progress_tx))?;
+            let bytes = copier.copy_file(source, dest, Some(&progress_tx), Some(paused.clone()))?;
             file_count += 1;
             total_bytes += bytes;
         }
@@ -286,6 +308,27 @@ fn print_summary(metrics: &TransferMetrics) {
     println!();
 }
 
+/// Calculate average rate within a time window
+fn calculate_window_avg(history: &[(f64, f64)], current_time: f64, window_secs: f64) -> f64 {
+    if history.is_empty() {
+        return 0.0;
+    }
+    
+    let cutoff = current_time - window_secs;
+    let window_samples: Vec<f64> = history
+        .iter()
+        .filter(|(t, _)| *t >= cutoff)
+        .map(|(_, r)| *r)
+        .collect();
+    
+    if window_samples.is_empty() {
+        return 0.0;
+    }
+    
+    window_samples.iter().sum::<f64>() / window_samples.len() as f64
+}
+
+
 #[tokio::main]
 async fn main() -> FluxResult<()> {
     let cli = Cli::parse();
@@ -320,11 +363,13 @@ async fn main() -> FluxResult<()> {
     let (progress_tx, progress_rx) = mpsc::unbounded_channel();
     let cancelled = Arc::new(AtomicBool::new(false));
     let cancelled_clone = cancelled.clone();
+    let paused = Arc::new(AtomicBool::new(false));
+    let paused_clone = paused.clone();
 
     // Spawn transfer task
     let cli_clone = cli.clone();
     let transfer_handle = tokio::spawn(async move {
-        perform_transfer(&cli_clone, progress_tx).await
+        perform_transfer(&cli_clone, progress_tx, paused_clone).await
     });
 
     // Run UI
@@ -333,7 +378,7 @@ async fn main() -> FluxResult<()> {
     } else {
         // Display welcome screen before TUI
         welcome::display_welcome_with_delay(1500);
-        run_tui(&cli, total_size, progress_rx, cancelled_clone).await?;
+        run_tui(&cli, total_size, progress_rx, cancelled_clone, paused).await?;
     }
 
     // Wait for transfer to complete
